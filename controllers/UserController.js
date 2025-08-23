@@ -1,0 +1,307 @@
+const User = require('../models/User');
+const { generateToken } = require('../middleware/auth');
+const { sendOTPEmail } = require('../utils/emailService');
+const { validationResult } = require('express-validator');
+
+const UserController = {
+  // Register new user
+  registerUser: async (req, res) => {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).json({ success: false, errors: errors.array() });
+      }
+
+      const { name, email, password, phoneNumber } = req.body;
+
+      const userExists = await User.findOne({ email });
+      if (userExists) {
+        return res.status(400).json({
+          success: false,
+          message: 'User already exists'
+        });
+      }
+
+      const user = new User({
+        name,
+        email,
+        password,
+        phoneNumber
+      });
+
+      const otp = user.generateOTP();
+      await user.save();
+      
+      await sendOTPEmail(email, otp);
+
+      res.status(201).json({
+        success: true,
+        message: 'User registered successfully. Please verify your email.'
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        message: error.message
+      });
+    }
+  },
+
+  // Verify OTP
+  verifyOtp: async (req, res) => {
+    try {
+      const { email, otp } = req.body;
+
+      const user = await User.findOne({ 
+        email,
+        OTP: otp,
+        OTPExpiry: { $gt: Date.now() }
+      });
+
+      if (!user) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid or expired OTP'
+        });
+      }
+
+      user.isVerified = true;
+      user.OTP = undefined;
+      user.OTPExpiry = undefined;
+      await user.save();
+
+      const token = generateToken(user._id, 'user');
+
+      res.json({
+        success: true,
+        token,
+        user: {
+          _id: user._id,
+          name: user.name,
+          email: user.email,
+          phoneNumber: user.phoneNumber,
+          isVerified: user.isVerified
+        }
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        message: error.message
+      });
+    }
+  },
+
+  // Login user
+  loginUser: async (req, res) => {
+    try {
+      const { email, password } = req.body;
+
+      const user = await User.findOne({ email });
+      if (!user) {
+        return res.status(401).json({
+          success: false,
+          message: 'Invalid email or password'
+        });
+      }
+
+      const isMatch = await user.comparePassword(password);
+      if (!isMatch) {
+        return res.status(401).json({
+          success: false,
+          message: 'Invalid email or password'
+        });
+      }
+
+      if (!user.isVerified) {
+        return res.status(401).json({
+          success: false,
+          message: 'Please verify your email first'
+        });
+      }
+
+      const token = generateToken(user._id, 'user');
+
+      res.json({
+        success: true,
+        token,
+        user: {
+          _id: user._id,
+          name: user.name,
+          email: user.email,
+          phoneNumber: user.phoneNumber,
+          isVerified: user.isVerified
+        }
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        message: error.message
+      });
+    }
+  },
+
+  // Forgot password
+  forgotPassword: async (req, res) => {
+    try {
+      const { email } = req.body;
+
+      const user = await User.findOne({ email });
+      if (!user) {
+        return res.status(404).json({
+          success: false,
+          message: 'User not found'
+        });
+      }
+
+      const otp = user.generateOTP();
+      await user.save();
+      
+      await sendOTPEmail(email, otp, 'reset');
+
+      res.json({
+        success: true,
+        message: 'Password reset OTP sent to your email'
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        message: error.message
+      });
+    }
+  },
+
+  // Reset password
+  resetPassword: async (req, res) => {
+    try {
+      const { email, otp, newPassword } = req.body;
+
+      const user = await User.findOne({
+        email,
+        OTP: otp,
+        OTPExpiry: { $gt: Date.now() }
+      });
+
+      if (!user) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid or expired OTP'
+        });
+      }
+
+      user.password = newPassword;
+      user.OTP = undefined;
+      user.OTPExpiry = undefined;
+      await user.save();
+
+      res.json({
+        success: true,
+        message: 'Password reset successful'
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        message: error.message
+      });
+    }
+  },
+
+  // Resend OTP
+  resendOtp: async (req, res) => {
+    try {
+      const { email } = req.body;
+
+      const user = await User.findOne({ email });
+      if (!user) {
+        return res.status(404).json({
+          success: false,
+          message: 'User not found'
+        });
+      }
+
+      const otp = user.generateOTP();
+      await user.save();
+      
+      await sendOTPEmail(email, otp);
+
+      res.json({
+        success: true,
+        message: 'New OTP sent to your email'
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        message: error.message
+      });
+    }
+  },
+
+  // Update user profile
+  updateUserProfile: async (req, res) => {
+    try {
+      const user = await User.findById(req.user._id);
+
+      if (user) {
+        user.name = req.body.name || user.name;
+        user.phoneNumber = req.body.phoneNumber || user.phoneNumber;
+
+        if (req.body.password) {
+          user.password = req.body.password;
+        }
+
+        const updatedUser = await user.save();
+
+        res.json({
+          success: true,
+          user: {
+            _id: updatedUser._id,
+            name: updatedUser.name,
+            email: updatedUser.email,
+            phoneNumber: updatedUser.phoneNumber,
+            isVerified: updatedUser.isVerified
+          }
+        });
+      } else {
+        res.status(404).json({
+          success: false,
+          message: 'User not found'
+        });
+      }
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        message: error.message
+      });
+    }
+  },
+
+  // Get user profile
+  getUserProfile: async (req, res) => {
+    try {
+      const user = await User.findById(req.user._id);
+
+      if (user) {
+        res.json({
+          success: true,
+          user: {
+            _id: user._id,
+            name: user.name,
+            email: user.email,
+            phoneNumber: user.phoneNumber,
+            isVerified: user.isVerified
+          }
+        });
+      } else {
+        res.status(404).json({
+          success: false,
+          message: 'User not found'
+        });
+      }
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        message: error.message
+      });
+    }
+  }
+};
+
+module.exports = UserController;
