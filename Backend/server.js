@@ -10,7 +10,8 @@ const recyclerRoutes = require('./routes/recyclerRoutes');
 const app = express();
 
 // Middleware
-app.use(cors());
+app.use(cors({ origin: "*", credentials: true }));
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -27,15 +28,15 @@ app.use((err, req, res, next) => {
   });
 });
 
-// Database connection
-mongoose.connect(process.env.MONGODB_URI, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true
-})
-.then(() => console.log('Connected to MongoDB'))
-.catch(err => console.error('MongoDB connection error:', err));
-
+// PORT setup
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
+
+// Database connection
+mongoose.connect(process.env.MONGODB_URI)
+  .then(() => {
+    console.log("✅ Connected to MongoDB");
+    app.listen(PORT, () => {
+      console.log(`🚀 Server running on port ${PORT}`);
+    });
+  })
+  .catch(err => console.error("❌ MongoDB connection error:", err));
