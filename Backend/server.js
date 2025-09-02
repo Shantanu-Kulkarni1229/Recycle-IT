@@ -6,7 +6,8 @@ const cors = require('cors');
 // Import routes
 const userRoutes = require('./routes/userRoutes');
 const recyclerRoutes = require('./routes/recyclerRoutes');
-
+const schedulePickupRoutes = require('./routes/schedulePickupRoutes');
+const recyclerPickupRoutes = require("./routes/recyclerPickupRoutes");
 const app = express();
 
 // Middleware
@@ -16,8 +17,11 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // Routes
+
+app.use("/api/recycler-pickups", recyclerPickupRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/recyclers', recyclerRoutes);
+app.use('/api/pickups', schedulePickupRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {
@@ -30,9 +34,13 @@ app.use((err, req, res, next) => {
 
 // PORT setup
 const PORT = process.env.PORT || 5000;
+// const MONGO_URI = ""; // bhai yaha pr direct ya env me dal dena uri
 
 // Database connection
-mongoose.connect(process.env.MONGODB_URI)
+mongoose.connect(MONGO_URI, {
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
+})
   .then(() => {
     console.log("✅ Connected to MongoDB");
     app.listen(PORT, () => {
@@ -40,3 +48,4 @@ mongoose.connect(process.env.MONGODB_URI)
     });
   })
   .catch(err => console.error("❌ MongoDB connection error:", err));
+

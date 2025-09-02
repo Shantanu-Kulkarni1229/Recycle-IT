@@ -1,0 +1,49 @@
+// models/RecyclerPickup.js
+const mongoose = require("mongoose");
+
+const recyclerPickupSchema = new mongoose.Schema(
+  {
+    pickupId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "SchedulePickup",
+      required: true,
+    },
+    recyclerId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Recycler",
+      required: true,
+    },
+    userId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+    },
+
+    deviceConditionReport: {
+      physicalDamage: { type: Number, default: 0 }, // %
+      workingComponents: [{ type: String }], // ["screen", "battery", "motherboard"]
+      reusableSemiconductors: { type: Number, default: 0 },
+      scrapValue: { type: Number, default: 0 },
+    },
+
+    inspectionStatus: {
+      type: String,
+      enum: ["Pending", "Under Inspection", "Completed"],
+      default: "Pending",
+    },
+
+    proposedPayment: { type: Number, default: 0 },
+    finalPayment: { type: Number, default: 0 },
+
+    paymentStatus: {
+      type: String,
+      enum: ["Pending", "Approved", "Paid", "Rejected"],
+      default: "Pending",
+    },
+
+    inspectionNotes: { type: String },
+  },
+  { timestamps: true }
+);
+
+module.exports = mongoose.model("RecyclerPickup", recyclerPickupSchema);
