@@ -37,7 +37,7 @@ const PORT = process.env.PORT || 5000;
 // const MONGO_URI = ""; // bhai yaha pr direct ya env me dal dena uri
 
 // Database connection
-mongoose.connect(MONGO_URI, {
+mongoose.connect(process.env.MONGODB_URI, {
   useNewUrlParser: true,
   useUnifiedTopology: true,
 })
