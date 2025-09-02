@@ -8,18 +8,19 @@ import {
   ScrollView,
   KeyboardAvoidingView,
   Platform,
-  Dimensions
+  ActivityIndicator
 } from "react-native";
+import { useRouter } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
 import api from "../../api/api";
-import { MotiView } from "moti";
-
-const { width } = Dimensions.get('window');
 
 const ResendOtp: React.FC = () => {
+  const router = useRouter();
   const [email, setEmail] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [otpSent, setOtpSent] = useState(false);
   const [countdown, setCountdown] = useState(0);
+  const [emailError, setEmailError] = useState("");
 
   // Countdown timer for resend cooldown
   useEffect(() => {
@@ -30,348 +31,238 @@ const ResendOtp: React.FC = () => {
     return () => clearTimeout(timer);
   }, [countdown]);
 
+  const validateEmail = (email: string) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
+
+  const handleEmailChange = (text: string) => {
+    setEmail(text);
+    if (emailError) setEmailError("");
+    if (otpSent) setOtpSent(false);
+  };
+
   const handleResend = async () => {
     if (countdown > 0) return; // Prevent spam requests
     
+    // Validation
+    setEmailError("");
+    
+    if (!email.trim()) {
+      setEmailError("Email is required");
+      return;
+    }
+
+    if (!validateEmail(email)) {
+      setEmailError("Please enter a valid email address");
+      return;
+    }
+    
     setIsLoading(true);
     try {
-      const res = await api.post("users/resend-otp", { email });
+      const res = await api.post("users/resend-otp", { email: email.toLowerCase().trim() });
       setOtpSent(true);
       setCountdown(60); // 60 second cooldown
-      Alert.alert("Success", res.data.message);
+      Alert.alert("Success", res.data.message || "OTP sent successfully to your email");
     } catch (err: any) {
-      Alert.alert("Error", err.response?.data?.message || "Resend failed");
+      const errorMessage = err.response?.data?.message || "Failed to resend OTP. Please try again.";
+      Alert.alert("Error", errorMessage);
     } finally {
       setIsLoading(false);
     }
   };
 
+  const formatCountdown = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    if (mins > 0) {
+      return `${mins}:${secs.toString().padStart(2, '0')}`;
+    }
+    return `${secs}s`;
+  };
+
   return (
     <KeyboardAvoidingView 
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      className="flex-1"
+      className="flex-1 bg-gray-50" 
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
-      {/* Background with gradient effect using View layers */}
-      <View className="absolute inset-0 bg-orange-50" />
-      <View 
-        className="absolute inset-0 opacity-30"
-        // Gradient backgrounds are not supported in React Native View.
-        // Use a gradient library like 'react-native-linear-gradient' for gradients.
-      />
-      
-      {/* Floating Background Elements */}
-      <MotiView
-        from={{ translateY: -30, opacity: 0.3, rotate: '0deg' }}
-        animate={{ translateY: 30, opacity: 0.7, rotate: '360deg' }}
-        transition={{
-          type: 'timing',
-          duration: 6000,
-          loop: true,
-          repeatReverse: true,
-        }}
-        className="absolute top-16 right-10"
-      >
-        <Text className="text-4xl">📱</Text>
-      </MotiView>
-
-      <MotiView
-        from={{ translateX: -25, opacity: 0.2, scale: 0.8 }}
-        animate={{ translateX: 25, opacity: 0.6, scale: 1.2 }}
-        transition={{
-          type: 'timing',
-          duration: 4000,
-          loop: true,
-          repeatReverse: true,
-          delay: 1500,
-        }}
-        className="absolute top-28 left-8"
-      >
-        <Text className="text-3xl">📨</Text>
-      </MotiView>
-
-      <MotiView
-        from={{ scale: 0.6, opacity: 0.1 }}
-        animate={{ scale: 1.4, opacity: 0.4 }}
-        transition={{
-          type: 'timing',
-          duration: 5500,
-          loop: true,
-          repeatReverse: true,
-          delay: 3000,
-        }}
-        className="absolute bottom-32 left-6"
-      >
-        <Text className="text-5xl">🔄</Text>
-      </MotiView>
-
-      <MotiView
-        from={{ rotate: '0deg', opacity: 0.15 }}
-        animate={{ rotate: '360deg', opacity: 0.35 }}
-        transition={{
-          type: 'timing',
-          duration: 10000,
-          loop: true,
-        }}
-        className="absolute top-1/3 right-1/4 transform translate-x-8 -translate-y-8"
-      >
-        <Text className="text-6xl text-green-200">♻️</Text>
-      </MotiView>
-
       <ScrollView 
+        className="flex-1"
         contentContainerStyle={{ flexGrow: 1 }}
         showsVerticalScrollIndicator={false}
-        className="flex-1"
       >
-        <View className="flex-1 justify-center px-6 py-8">
+        {/* Header */}
+        <View className="pt-16 pb-8 px-6">
+          <TouchableOpacity 
+            onPress={() => router.back()}
+            className="w-10 h-10 rounded-full bg-white items-center justify-center shadow-sm mb-6"
+          >
+            <Ionicons name="arrow-back" size={20} color="#374151" />
+          </TouchableOpacity>
           
-          {/* Header Section */}
-          <MotiView
-            from={{ opacity: 0, translateY: -50 }}
-            animate={{ opacity: 1, translateY: 0 }}
-            transition={{ type: 'timing', duration: 1000 }}
-            className="items-center mb-12"
-          >
-            {/* Refresh Icon Animation */}
-            <MotiView
-              from={{ scale: 0, rotate: '0deg' }}
-              animate={{ scale: 1, rotate: '360deg' }}
-              transition={{
-                type: 'spring',
-                damping: 8,
-                stiffness: 80,
-                delay: 300,
-              }}
-              className="mb-6"
-            >
-              <View className="bg-white rounded-full p-6 shadow-xl">
-                <Text className="text-5xl">🔄</Text>
-              </View>
-            </MotiView>
-            
-            <Text className="text-4xl font-bold text-orange-700 mb-3 text-center">
-              Resend OTP
-            </Text>
-            <Text className="text-lg text-orange-600 text-center leading-7 px-4">
-              Didn't receive the code?{'\n'}
-              <Text className="font-semibold">We'll send it again 📱</Text>
-            </Text>
-          </MotiView>
-
-          {/* Form Section */}
-          <MotiView
-            from={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ type: 'timing', duration: 600, delay: 600 }}
-          >
-            <View className="bg-white/95 rounded-3xl p-8 shadow-xl backdrop-blur-sm mb-8">
-              
-              {/* Instructions */}
-              <MotiView
-                from={{ opacity: 0, translateY: -20 }}
-                animate={{ opacity: 1, translateY: 0 }}
-                transition={{ 
-                  type: 'timing', 
-                  duration: 500, 
-                  delay: 800 
-                }}
-                className="mb-6"
-              >
-                <View className="bg-orange-50/80 p-4 rounded-2xl border-l-4 border-orange-400">
-                  <Text className="text-orange-700 text-base leading-6">
-                    📬 Enter your email address to receive a new verification code. Check your spam folder if you don't see it!
-                  </Text>
-                </View>
-              </MotiView>
-
-              {/* Email Input */}
-              <MotiView
-                from={{ opacity: 0, translateX: -30 }}
-                animate={{ opacity: 1, translateX: 0 }}
-                transition={{ 
-                  type: 'timing', 
-                  duration: 500, 
-                  delay: 1000 
-                }}
-                className="mb-6"
-              >
-                <View className="relative">
-                  {/* Email Icon */}
-                  <View className="absolute left-4 top-1/2 transform -translate-y-3 z-10">
-                    <Text className="text-xl">📧</Text>
-                  </View>
-                  
-                  {/* Email Input */}
-                  <TextInput
-                    placeholder="Enter your registered email"
-                    placeholderTextColor="#9CA3AF"
-                    keyboardType="email-address"
-                    autoCapitalize="none"
-                    className="bg-gray-50 border border-gray-200 pl-14 pr-4 py-5 rounded-2xl text-gray-700 text-lg"
-                    style={{
-                      shadowColor: '#000',
-                      shadowOffset: { width: 0, height: 2 },
-                      shadowOpacity: 0.1,
-                      shadowRadius: 3,
-                      elevation: 3,
-                    }}
-                    value={email}
-                    onChangeText={setEmail}
-                  />
-                  
-                  {/* Success checkmark */}
-                  {otpSent && (
-                    <MotiView
-                      from={{ scale: 0, opacity: 0 }}
-                      animate={{ scale: 1, opacity: 1 }}
-                      transition={{ type: 'spring', damping: 15, stiffness: 150 }}
-                      className="absolute right-4 top-1/2 transform -translate-y-3"
-                    >
-                      <Text className="text-xl">✅</Text>
-                    </MotiView>
-                  )}
-                </View>
-              </MotiView>
-
-              {/* Countdown Timer */}
-              {countdown > 0 && (
-                <MotiView
-                  from={{ opacity: 0, scale: 0.8 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ type: 'spring', damping: 15, stiffness: 150 }}
-                  className="mb-6"
-                >
-                  <View className="bg-blue-50/80 p-4 rounded-2xl border border-blue-200">
-                    <Text className="text-blue-700 text-center text-base font-medium">
-                      ⏱️ Please wait {countdown} seconds before requesting again
-                    </Text>
-                    <View className="mt-2 bg-blue-200 rounded-full h-2 overflow-hidden">
-                      <MotiView
-                        animate={{ width: `${((60 - countdown) / 60) * 100}%` }}
-                        transition={{ type: 'timing', duration: 300 }}
-                        className="h-full bg-blue-500"
-                      />
-                    </View>
-                  </View>
-                </MotiView>
-              )}
-
-              {/* Resend OTP Button */}
-              <MotiView
-                from={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ 
-                  type: 'spring', 
-                  damping: 15, 
-                  stiffness: 150, 
-                  delay: 1200 
-                }}
-              >
-                <TouchableOpacity
-                  onPress={handleResend}
-                  disabled={isLoading || countdown > 0}
-                  className={`${
-                    countdown > 0
-                      ? 'bg-gray-400'
-                      : otpSent 
-                        ? 'bg-green-500' 
-                        : isLoading 
-                          ? 'bg-orange-400' 
-                          : 'bg-orange-600'
-                  } p-5 rounded-2xl shadow-lg`}
-                  style={{
-                    shadowColor: countdown > 0 ? '#6B7280' : otpSent ? '#10B981' : '#EA580C',
-                    shadowOffset: { width: 0, height: 6 },
-                    shadowOpacity: 0.4,
-                    shadowRadius: 10,
-                    elevation: 8,
-                  }}
-                >
-                  <View className="flex-row items-center justify-center">
-                    {isLoading && (
-                      <View className="mr-3">
-                        <Text className="text-lg">⏳</Text>
-                      </View>
-                    )}
-                    {countdown > 0 && (
-                      <View className="mr-3">
-                        <Text className="text-lg">⏱️</Text>
-                      </View>
-                    )}
-                    {otpSent && countdown === 0 && (
-                      <View className="mr-3">
-                        <Text className="text-lg">✅</Text>
-                      </View>
-                    )}
-                    <Text className="text-white text-center text-xl font-bold">
-                      {countdown > 0 
-                        ? `Wait ${countdown}s` 
-                        : otpSent && countdown === 0
-                          ? 'OTP Sent Successfully!'
-                          : isLoading 
-                            ? 'Sending OTP...' 
-                            : 'Resend Verification Code 📱'
-                      }
-                    </Text>
-                  </View>
-                </TouchableOpacity>
-              </MotiView>
-
-              {/* Success Message */}
-              {otpSent && (
-                <MotiView
-                  from={{ opacity: 0, translateY: 20 }}
-                  animate={{ opacity: 1, translateY: 0 }}
-                  transition={{ type: 'timing', duration: 600 }}
-                  className="mt-6"
-                >
-                  <View className="bg-green-50/80 p-4 rounded-2xl border-l-4 border-green-400">
-                    <Text className="text-green-700 text-base leading-6 text-center">
-                      🎉 New OTP sent successfully!{'\n'}
-                      <Text className="text-sm opacity-80">Check your email and spam folder</Text>
-                    </Text>
-                  </View>
-                </MotiView>
-              )}
-
+          <View className="items-center mb-8">
+            <View className="w-16 h-16 bg-orange-100 rounded-full items-center justify-center mb-4">
+              <Ionicons name="refresh-outline" size={32} color="#ea580c" />
             </View>
-          </MotiView>
+            <Text className="text-2xl font-bold text-gray-900 mb-2">Resend OTP</Text>
+            <Text className="text-gray-600 text-center leading-6 px-4">
+              Didn't receive the verification code? We'll send a new one to your email address.
+            </Text>
+          </View>
+        </View>
+
+        {/* Form Container */}
+        <View className="flex-1 bg-white rounded-t-3xl px-6 pt-8">
+          
+          {/* Info Card */}
+          <View className="bg-orange-50 border border-orange-200 rounded-2xl p-4 mb-6">
+            <View className="flex-row items-start">
+              <View className="mr-3 mt-0.5">
+                <Ionicons name="information-circle-outline" size={20} color="#ea580c" />
+              </View>
+              <View className="flex-1">
+                <Text className="text-orange-800 font-medium mb-1">Before requesting a new code:</Text>
+                <Text className="text-orange-700 text-sm leading-5">
+                  • Check your spam/junk folder{'\n'}
+                  • Wait a few minutes for delivery{'\n'}
+                  • Ensure stable internet connection
+                </Text>
+              </View>
+            </View>
+          </View>
+
+          {/* Email Input */}
+          <View className="mb-6">
+            <Text className="text-gray-700 font-medium mb-2">Email Address</Text>
+            <View className="relative">
+              <TextInput
+                placeholder="Enter your registered email"
+                placeholderTextColor="#9CA3AF"
+                className={`border-2 p-4 rounded-xl text-gray-900 pr-12 ${
+                  emailError ? 'border-red-300 bg-red-50' : 
+                  otpSent ? 'border-green-300 bg-green-50' : 'border-gray-200 bg-gray-50'
+                }`}
+                value={email}
+                onChangeText={handleEmailChange}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                autoCorrect={false}
+                editable={!isLoading}
+              />
+              <View className="absolute right-4 top-4">
+                {otpSent && !emailError ? (
+                  <Ionicons name="checkmark-circle" size={20} color="#16a34a" />
+                ) : (
+                  <Ionicons name="mail-outline" size={20} color="#9CA3AF" />
+                )}
+              </View>
+            </View>
+            {emailError ? (
+              <View className="flex-row items-center mt-2">
+                <Ionicons name="alert-circle-outline" size={16} color="#ef4444" />
+                <Text className="text-red-500 text-sm ml-1">{emailError}</Text>
+              </View>
+            ) : null}
+          </View>
+
+          {/* Countdown Timer */}
+          {countdown > 0 && (
+            <View className="bg-blue-50 border border-blue-200 rounded-2xl p-4 mb-6">
+              <View className="flex-row items-center justify-between mb-2">
+                <View className="flex-row items-center">
+                  <Ionicons name="time-outline" size={20} color="#2563eb" />
+                  <Text className="text-blue-800 font-medium ml-2">Cooldown Active</Text>
+                </View>
+                <Text className="text-blue-600 font-bold text-lg">{formatCountdown(countdown)}</Text>
+              </View>
+              <Text className="text-blue-700 text-sm">
+                Please wait before requesting another code
+              </Text>
+              {/* Progress Bar */}
+              <View className="mt-3 bg-blue-200 rounded-full h-2 overflow-hidden">
+                <View 
+                  className="h-full bg-blue-500 rounded-full transition-all duration-1000"
+                  style={{ width: `${((60 - countdown) / 60) * 100}%` }}
+                />
+              </View>
+            </View>
+          )}
+
+          {/* Success Message */}
+          {otpSent && countdown === 0 && (
+            <View className="bg-green-50 border border-green-200 rounded-2xl p-4 mb-6">
+              <View className="flex-row items-center mb-2">
+                <Ionicons name="checkmark-circle" size={20} color="#16a34a" />
+                <Text className="text-green-800 font-medium ml-2">OTP Sent Successfully!</Text>
+              </View>
+              <Text className="text-green-700 text-sm">
+                A new verification code has been sent to your email. Please check your inbox and spam folder.
+              </Text>
+            </View>
+          )}
+
+          {/* Resend Button */}
+          <TouchableOpacity
+            onPress={handleResend}
+            disabled={isLoading || countdown > 0}
+            className={`p-4 rounded-xl mb-6 ${
+              countdown > 0 ? 'bg-gray-400' :
+              isLoading ? 'bg-orange-400' : 'bg-orange-600'
+            }`}
+            style={{ 
+              elevation: countdown > 0 ? 0 : 2, 
+              shadowColor: '#000', 
+              shadowOffset: { width: 0, height: 2 }, 
+              shadowOpacity: countdown > 0 ? 0 : 0.1, 
+              shadowRadius: 4 
+            }}
+          >
+            {isLoading ? (
+              <View className="flex-row items-center justify-center">
+                <ActivityIndicator size="small" color="white" />
+                <Text className="text-white font-semibold ml-2">Sending OTP...</Text>
+              </View>
+            ) : (
+              <View className="flex-row items-center justify-center">
+                <Ionicons 
+                  name={countdown > 0 ? "time-outline" : "refresh-outline"} 
+                  size={20} 
+                  color="white" 
+                />
+                <Text className="text-white font-semibold ml-2 text-base">
+                  {countdown > 0 ? `Wait ${formatCountdown(countdown)}` : 'Resend Verification Code'}
+                </Text>
+              </View>
+            )}
+          </TouchableOpacity>
+
+          {/* Navigation Options */}
+          <View className="flex-row items-center justify-center mb-6">
+            <Text className="text-gray-600">Already have a code? </Text>
+            <TouchableOpacity onPress={() => router.push("/auth/verify-otp")}>
+              <Text className="text-orange-600 font-medium">Verify Now</Text>
+            </TouchableOpacity>
+          </View>
 
           {/* Help Section */}
-          <MotiView
-            from={{ opacity: 0, translateY: 30 }}
-            animate={{ opacity: 1, translateY: 0 }}
-            transition={{ type: 'timing', duration: 600, delay: 1400 }}
-            className="items-center mb-6"
-          >
-            <View className="bg-white/80 px-6 py-4 rounded-2xl shadow-sm">
-              <Text className="text-center text-orange-700 font-medium text-base mb-2">
-                📋 Troubleshooting Tips
-              </Text>
-              <Text className="text-center text-orange-600 text-sm leading-5">
-                • Check your spam/junk folder{'\n'}
-                • Ensure stable internet connection{'\n'}
-                • Wait a few minutes before trying again
-              </Text>
+          <View className="bg-gray-50 rounded-2xl p-4 mb-8">
+            <View className="flex-row items-center mb-2">
+              <Ionicons name="help-circle-outline" size={20} color="#6b7280" />
+              <Text className="text-gray-700 font-medium ml-2">Need Help?</Text>
             </View>
-          </MotiView>
-
-          {/* Bottom Eco Message */}
-          <MotiView
-            from={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ type: 'timing', duration: 1000, delay: 1600 }}
-            className="items-center"
-          >
-            <View className="bg-green-100/90 px-6 py-3 rounded-full shadow-sm">
-              <Text className="text-sm text-green-700 font-semibold tracking-wider">
-                🌱 ECO-FRIENDLY VERIFICATION 🌱
-              </Text>
-            </View>
-            <Text className="text-xs text-green-600 mt-3 text-center opacity-80">
-              Digital solutions for a greener tomorrow
+            <Text className="text-gray-600 text-sm leading-5">
+              If you continue having issues receiving the OTP, please contact our support team for assistance.
             </Text>
-          </MotiView>
+          </View>
 
+          {/* Footer */}
+          <View className="items-center pb-8">
+            <View className="flex-row items-center">
+              <Ionicons name="leaf-outline" size={16} color="#16a34a" />
+              <Text className="text-green-600 font-medium ml-1">Eco-Friendly Digital Verification</Text>
+            </View>
+            <Text className="text-gray-500 text-xs mt-1">Digital solutions for a greener tomorrow</Text>
+          </View>
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
