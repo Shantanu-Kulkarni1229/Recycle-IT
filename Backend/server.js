@@ -21,7 +21,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use("/api/recycler-pickups", recyclerPickupRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/recyclers', recyclerRoutes);
-app.use('/api/pickups', schedulePickupRoutes);
+app.use('/api/schedule-pickup', schedulePickupRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {

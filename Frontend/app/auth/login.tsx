@@ -34,9 +34,10 @@ const Login: React.FC = () => {
       const res = await api.post("users/login", { email, password });
 
       // ✅ Save token
-      if (res.data.token) {
-        await AsyncStorage.setItem("userToken", res.data.token);
-      }
+      if (res.data.token && res.data.user) {
+  await AsyncStorage.setItem("userToken", res.data.token);
+  await AsyncStorage.setItem("userId", res.data.user._id); // <-- store userId
+}
 
       Alert.alert("Success", "Login Successful");
       router.replace("/home"); // go to home
