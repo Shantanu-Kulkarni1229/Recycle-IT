@@ -1,0 +1,27 @@
+{
+  "ownerName": "John Smith",
+  "companyName": "EcoRecycle Solutions",
+  "email": "recycler@example.com",
+  "password": "$2a$10$rZ8QqBJZJ8JZJ8JZJ8JZJ8JZJ8JZJ8JZJ8JZJ8JZJ8JZJ8JZJ8JZJ",
+  "phoneNumber": "9876543210",
+  "address": "123 Green Street, Eco Building",
+  "city": "Mumbai",
+  "state": "Maharashtra",
+  "pincode": "400001",
+  "isVerified": true,
+  "verificationStatus": "Approved",
+  "verificationDocuments": [
+    {
+      "documentType": "license",
+      "documentUrl": "/uploads/documents/license.pdf",
+      "uploadedAt": "2025-09-07T00:00:00.000Z"
+    },
+    {
+      "documentType": "certificate",
+      "documentUrl": "/uploads/documents/certificate.pdf",
+      "uploadedAt": "2025-09-07T00:00:00.000Z"
+    }
+  ],
+  "createdAt": "2025-09-07T00:00:00.000Z",
+  "updatedAt": "2025-09-07T00:00:00.000Z"
+}

@@ -1,0 +1,26 @@
+// Test script to create a recycler account
+// You can run this in Postman or create a simple test file
+
+// POST to http://localhost:5000/api/recyclers/register
+// Content-Type: application/json
+
+{
+  "ownerName": "John Smith",
+  "companyName": "EcoRecycle Solutions",
+  "email": "recycler@example.com",
+  "password": "password123",
+  "phoneNumber": "9876543210",
+  "address": "123 Green Street, Eco Building",
+  "city": "Mumbai",
+  "state": "Maharashtra",
+  "pincode": "400001"
+}
+
+// After registration, you'll need to verify the email with OTP
+// Check the backend console for the OTP, then make another request:
+
+// POST to http://localhost:5000/api/recyclers/verify-otp
+{
+  "email": "recycler@example.com",
+  "otp": "YOUR_OTP_FROM_CONSOLE"
+}

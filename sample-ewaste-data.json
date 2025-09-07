@@ -1,0 +1,42 @@
+[
+  {
+    "userId": "64abc123def456789012345a",
+    "deviceType": "Laptop",
+    "brand": "Dell",
+    "model": "Inspiron 15",
+    "purchaseDate": "2020-06-15T00:00:00.000Z",
+    "timeSincePurchase": "5 years",
+    "condition": "Not Working",
+    "weight": 2.5,
+    "notes": "Screen is broken, battery doesn't charge",
+    "pickupAddress": "456 Tech Park, Building A",
+    "city": "Mumbai",
+    "state": "Maharashtra",
+    "pincode": "400001",
+    "preferredPickupDate": "2025-09-10T10:00:00.000Z",
+    "pickupStatus": "Pending",
+    "assignedRecyclerId": "YOUR_RECYCLER_ID_HERE",
+    "createdAt": "2025-09-07T00:00:00.000Z",
+    "updatedAt": "2025-09-07T00:00:00.000Z"
+  },
+  {
+    "userId": "64abc123def456789012345b",
+    "deviceType": "Smartphone",
+    "brand": "Samsung",
+    "model": "Galaxy S20",
+    "purchaseDate": "2021-03-20T00:00:00.000Z",
+    "timeSincePurchase": "4 years",
+    "condition": "Partially Working",
+    "weight": 0.2,
+    "notes": "Camera not working, but phone turns on",
+    "pickupAddress": "789 Residential Complex",
+    "city": "Mumbai",
+    "state": "Maharashtra",
+    "pincode": "400002",
+    "preferredPickupDate": "2025-09-12T14:00:00.000Z",
+    "pickupStatus": "Scheduled",
+    "assignedRecyclerId": "YOUR_RECYCLER_ID_HERE",
+    "createdAt": "2025-09-06T00:00:00.000Z",
+    "updatedAt": "2025-09-07T00:00:00.000Z"
+  }
+]
