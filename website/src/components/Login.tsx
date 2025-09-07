@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
-import { authAPI } from '../services/api';
-import { setToken, setRecyclerData } from '../utils/helpers';
+import { Eye, EyeOff, User, Lock, ArrowRight } from 'lucide-react';
+import { authAPI } from '../services/completeAPI';
 
 interface LoginProps {
   onLogin: () => void;
+  onSignUp?: () => void;
 }
 
-const Login: React.FC<LoginProps> = ({ onLogin }) => {
+const Login: React.FC<LoginProps> = ({ onLogin, onSignUp }) => {
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -36,23 +37,18 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
     setError('');
 
     try {
-      const response = await authAPI.login(formData.email, formData.password);
+      const response: any = await authAPI.login(formData.email, formData.password);
       
-      if (response.data.success) {
-        const { token, recycler } = response.data;
-        
-        // Store token and recycler data
-        setToken(token);
-        setRecyclerData(recycler);
-        
-        // Call onLogin callback
+      if (response.success) {
+        localStorage.setItem('recyclerToken', response.token);
+        localStorage.setItem('recyclerData', JSON.stringify(response.recycler));
         onLogin();
       } else {
-        setError(response.data.message || 'Login failed');
+        setError(response.message || 'Login failed');
       }
-    } catch (err: any) {
-      console.error('Login error:', err);
-      setError(err.response?.data?.message || 'Login failed. Please try again.');
+    } catch (error: any) {
+      console.error('Login error:', error);
+      setError(error.response?.data?.message || 'Network error. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -155,9 +151,9 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
 
             {/* Forgot Password Link */}
             <div className="text-right mb-6">
-              <a href="#" className="text-emerald-600 hover:text-emerald-700 text-sm font-medium transition-colors">
+              <button type="button" className="text-emerald-600 hover:text-emerald-700 text-sm font-medium transition-colors">
                 Forgot Password?
-              </a>
+              </button>
             </div>
 
             {error && (
@@ -191,10 +187,28 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
           </div>
 
           {/* Help Text */}
-          <div className="text-center">
+          <div className="text-center space-y-3">
             <p className="text-gray-600 text-sm">
               Need help? Contact our support team
             </p>
+            
+            {onSignUp && (
+              <div className="pt-4 border-t border-gray-200">
+                <p className="text-gray-600 text-sm mb-3">
+                  Don't have a recycler account?
+                </p>
+                <button
+                  type="button"
+                  onClick={onSignUp}
+                  className="w-full py-3 px-4 border-2 border-green-600 text-green-600 font-medium rounded-xl hover:bg-green-50 transition-all duration-200"
+                >
+                  <div className="flex items-center justify-center">
+                    <span className="mr-2">✨</span>
+                    Create Recycler Account
+                  </div>
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </div>

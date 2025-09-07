@@ -78,6 +78,9 @@ router.post('/forgot-password', RecyclerController.forgotPassword);
 router.post('/reset-password', passwordValidation, RecyclerController.resetPassword);
 router.post('/resend-otp', RecyclerController.resendOtp);
 
+// Test route (for development - bypasses email verification)
+router.post('/test-create', RecyclerController.testCreateRecycler);
+
 // Protected routes
 router.get('/profile', protect, RecyclerController.getRecyclerProfile);
 router.put('/profile', protect, RecyclerController.updateRecyclerProfile);

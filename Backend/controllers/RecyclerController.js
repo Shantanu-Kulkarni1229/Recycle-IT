@@ -480,6 +480,80 @@ const RecyclerController = {
         message: error.message
       });
     }
+  },
+
+  // Test endpoint to create recycler account without email verification
+  testCreateRecycler: async (req, res) => {
+    try {
+      const {
+        ownerName,
+        companyName,
+        email,
+        password,
+        phoneNumber,
+        address,
+        city,
+        state,
+        pincode
+      } = req.body;
+
+      // Validation
+      if (!ownerName || !companyName || !email || !password || !phoneNumber || !address || !city || !state || !pincode) {
+        return res.status(400).json({
+          success: false,
+          message: 'Please provide all required fields'
+        });
+      }
+
+      // Check if recycler already exists
+      const existingRecycler = await Recycler.findOne({ email });
+      if (existingRecycler) {
+        return res.status(400).json({
+          success: false,
+          message: 'Recycler with this email already exists'
+        });
+      }
+
+      // Create recycler
+      const recycler = new Recycler({
+        ownerName,
+        companyName,
+        email,
+        password,
+        phoneNumber,
+        address,
+        city,
+        state,
+        pincode,
+        isVerified: true, // Skip email verification for testing
+        verificationStatus: 'approved' // Set as approved for testing
+      });
+
+      await recycler.save();
+
+      res.status(201).json({
+        success: true,
+        message: 'Recycler account created successfully (Test Mode)',
+        recycler: {
+          id: recycler._id,
+          ownerName: recycler.ownerName,
+          companyName: recycler.companyName,
+          email: recycler.email,
+          phoneNumber: recycler.phoneNumber,
+          address: recycler.address,
+          city: recycler.city,
+          state: recycler.state,
+          pincode: recycler.pincode,
+          isVerified: recycler.isVerified,
+          verificationStatus: recycler.verificationStatus
+        }
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        message: error.message
+      });
+    }
   }
 };
 

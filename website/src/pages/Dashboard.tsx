@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { pickupAPI, analyticsAPI } from '../services/api';
+import { recyclerPickupAPI, ewasteAPI } from '../services/completeAPI';
 import { getRecyclerData, formatCurrency, formatDate, getStatusColor } from '../utils/helpers';
 import { DashboardStats, SchedulePickup, RecyclerPickup } from '../types';
 
@@ -40,7 +40,7 @@ const Dashboard: React.FC = () => {
 
       // Load recent pickups assigned to this recycler
       try {
-        const pickupsResponse = await pickupAPI.getAssignedPickups(recyclerData._id);
+        const pickupsResponse = await recyclerPickupAPI.getRecyclerPickups(recyclerData._id);
         if (pickupsResponse.data.success) {
           setRecentPickups(pickupsResponse.data.data.slice(0, 5));
         }
@@ -51,7 +51,7 @@ const Dashboard: React.FC = () => {
 
       // Load pending inspections
       try {
-        const inspectionsResponse = await pickupAPI.getInspectionReports(recyclerData._id);
+        const inspectionsResponse = await ewasteAPI.getAssignedEwaste();
         if (inspectionsResponse.data.success) {
           const pending = inspectionsResponse.data.data.filter(
             (inspection: RecyclerPickup) => inspection.inspectionStatus === 'Pending'
