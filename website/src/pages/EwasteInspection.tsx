@@ -38,20 +38,7 @@ const EwasteInspection: React.FC = () => {
         if (response.success) {
           setEwasteItems(response.data || []);
         } else {
-          // Mock data for demonstration
-          setEwasteItems([
-            {
-              _id: '1',
-              deviceType: 'Laptop',
-              brand: 'Dell',
-              model: 'Inspiron 15',
-              condition: 'good',
-              estimatedValue: 0,
-              inspectionStatus: 'pending',
-              userDetails: { name: 'John Doe', phone: '123-456-7890' },
-              inspectionNotes: ''
-            }
-          ]);
+          setEwasteItems([]);
         }
       } catch (error) {
         console.error('Error loading e-waste items:', error);
@@ -73,61 +60,15 @@ const EwasteInspection: React.FC = () => {
       if (response.success && response.ewaste) {
         setEwasteItems(response.ewaste);
       } else {
-        // Fallback to mock data for demonstration
-        setEwasteItems(generateMockEwaste());
+        setEwasteItems([]);
       }
     } catch (err: any) {
       console.error('E-waste loading error:', err);
-      setError('Failed to load e-waste items. Showing sample data.');
-      setEwasteItems(generateMockEwaste());
+      setError('Failed to load e-waste items.');
+      setEwasteItems([]);
     } finally {
       setIsLoading(false);
     }
-  };
-
-  const generateMockEwaste = (): EwasteItem[] => {
-    return [
-      {
-        _id: '1',
-        deviceType: 'iPhone 12',
-        condition: 'Unknown',
-        estimatedValue: 0,
-        inspectionStatus: 'pending',
-        pickupId: 'PKP001',
-        userDetails: { name: 'John Doe', phone: '9876543210' }
-      },
-      {
-        _id: '2',
-        deviceType: 'Dell Laptop XPS 13',
-        condition: 'Good',
-        estimatedValue: 15000,
-        inspectionStatus: 'completed',
-        inspectionNotes: 'Screen has minor scratches, battery health is 85%',
-        inspectionDate: new Date().toISOString(),
-        pickupId: 'PKP002',
-        userDetails: { name: 'Jane Smith', phone: '9876543211' }
-      },
-      {
-        _id: '3',
-        deviceType: 'Samsung Galaxy Tab',
-        condition: 'Unknown',
-        estimatedValue: 0,
-        inspectionStatus: 'pending',
-        pickupId: 'PKP003',
-        userDetails: { name: 'Mike Wilson', phone: '9876543212' }
-      },
-      {
-        _id: '4',
-        deviceType: 'HP Printer',
-        condition: 'Poor',
-        estimatedValue: 500,
-        inspectionStatus: 'completed',
-        inspectionNotes: 'Cartridges missing, some wear on exterior',
-        inspectionDate: new Date(Date.now() - 86400000).toISOString(),
-        pickupId: 'PKP004',
-        userDetails: { name: 'Sarah Lee', phone: '9876543213' }
-      }
-    ];
   };
 
   const handleInspectionSubmit = async () => {
