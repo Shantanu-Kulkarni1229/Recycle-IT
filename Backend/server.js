@@ -1,31 +1,47 @@
-require('dotenv').config();
+require("dotenv").config();
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
+
 
 // Import routes
 const userRoutes = require('./routes/userRoutes');
 const recyclerRoutes = require('./routes/recyclerRoutes');
 const schedulePickupRoutes = require('./routes/schedulePickupRoutes');
 const recyclerPickupRoutes = require("./routes/recyclerPickupRoutes");
+
 const app = express();
 
 // Middleware
 app.use(cors({ origin: "*", credentials: true }));
-
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // Routes
-
 app.use("/api/recycler-pickups", recyclerPickupRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/recyclers', recyclerRoutes);
 app.use('/api/schedule-pickup', schedulePickupRoutes);
 
-// Error handling middleware
+// Error handling middleware (Enhanced for file upload errors)
 app.use((err, req, res, next) => {
   console.error(err.stack);
+  
+  // Handle multer errors
+  if (err.code === 'LIMIT_FILE_SIZE') {
+    return res.status(400).json({
+      success: false,
+      message: 'File too large. Maximum size is 5MB.'
+    });
+  }
+  
+  if (err.message === 'Invalid file type. Only images and documents are allowed.') {
+    return res.status(400).json({
+      success: false,
+      message: err.message
+    });
+  }
+  
   res.status(err.status || 500).json({
     success: false,
     message: err.message || 'Internal server error'
@@ -34,7 +50,6 @@ app.use((err, req, res, next) => {
 
 // PORT setup
 const PORT = process.env.PORT || 5000;
-// const MONGO_URI = ""; // bhai yaha pr direct ya env me dal dena uri
 
 // Database connection
 mongoose.connect(process.env.MONGODB_URI, {
@@ -48,4 +63,3 @@ mongoose.connect(process.env.MONGODB_URI, {
     });
   })
   .catch(err => console.error("❌ MongoDB connection error:", err));
-
