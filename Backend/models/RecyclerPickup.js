@@ -1,4 +1,3 @@
-// models/RecyclerPickup.js
 const mongoose = require("mongoose");
 
 const recyclerPickupSchema = new mongoose.Schema(
@@ -24,6 +23,9 @@ const recyclerPickupSchema = new mongoose.Schema(
       workingComponents: [{ type: String }], // ["screen", "battery", "motherboard"]
       reusableSemiconductors: { type: Number, default: 0 },
       scrapValue: { type: Number, default: 0 },
+      // NEW: Add image fields for inspection photos
+      inspectionImages: [{ type: String }], // Array of Cloudinary URLs
+      damageImages: [{ type: String }], // Array of Cloudinary URLs for damage photos
     },
 
     inspectionStatus: {
@@ -42,6 +44,9 @@ const recyclerPickupSchema = new mongoose.Schema(
     },
 
     inspectionNotes: { type: String },
+    
+    // NEW: Add inspection report document field
+    inspectionReportDocument: { type: String }, // Cloudinary URL for PDF report
   },
   { timestamps: true }
 );

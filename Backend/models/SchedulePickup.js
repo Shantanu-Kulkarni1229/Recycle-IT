@@ -53,6 +53,39 @@ const schedulePickupSchema = new mongoose.Schema(
       trim: true,
       maxLength: [500, "Notes cannot exceed 500 characters"]
     },
+    // NEW: Device images uploaded to Cloudinary
+    deviceImages: [{
+      url: {
+        type: String,
+        required: true
+      },
+      publicId: {
+        type: String,
+        required: true
+      },
+      originalName: String,
+      uploadedAt: {
+        type: Date,
+        default: Date.now
+      }
+    }],
+    // NEW: Documents (receipts, warranties, etc.)
+    documents: [{
+      url: {
+        type: String,
+        required: true
+      },
+      publicId: {
+        type: String,
+        required: true
+      },
+      originalName: String,
+      fileType: String,
+      uploadedAt: {
+        type: Date,
+        default: Date.now
+      }
+    }],
     pickupAddress: { 
       type: String, 
       required: [true, "Pickup address is required"],
@@ -111,6 +144,7 @@ const schedulePickupSchema = new mongoose.Schema(
     toObject: { virtuals: true }
   }
 );
+
 schedulePickupSchema.plugin(mongoosePaginate);
 
 // Virtual for formatted address

@@ -1,12 +1,78 @@
 const mongoose = require("mongoose");
 const SchedulePickup = require("../models/SchedulePickup");
+const { cloudinary } = require("../config/cloudinary");
 
 // Validation function for ObjectId
 const isValidObjectId = (id) => {
   return mongoose.Types.ObjectId.isValid(id);
 };
 
-// 1. Create Pickup Request
+// Helper function to process uploaded files
+const processUploadedFiles = (files) => {
+  const result = {
+    deviceImages: [],
+    documents: []
+  };
+
+  if (!files) return result;
+
+  // Handle different file upload scenarios
+  let fileArray = [];
+  
+  if (Array.isArray(files)) {
+    // files is an array (from upload.array())
+    fileArray = files;
+  } else if (files.deviceImages && Array.isArray(files.deviceImages)) {
+    // files is an object with deviceImages array (from upload.fields())
+    fileArray = [...fileArray, ...files.deviceImages];
+  } else if (files.documents && Array.isArray(files.documents)) {
+    // files is an object with documents array (from upload.fields())
+    fileArray = [...fileArray, ...files.documents];
+  } else if (files.deviceImages) {
+    // Single file in deviceImages
+    fileArray.push(files.deviceImages);
+  } else if (files.documents) {
+    // Single file in documents
+    fileArray.push(files.documents);
+  }
+
+  fileArray.forEach(file => {
+    const fileInfo = {
+      url: file.path, // Cloudinary URL
+      publicId: file.filename, // Cloudinary public ID
+      originalName: file.originalname,
+      uploadedAt: new Date()
+    };
+
+    // Categorize based on file type
+    if (file.mimetype.startsWith('image/')) {
+      result.deviceImages.push(fileInfo);
+    } else {
+      result.documents.push({
+        ...fileInfo,
+        fileType: file.mimetype
+      });
+    }
+  });
+
+  return result;
+};
+
+// Helper function to delete files from Cloudinary
+const deleteCloudinaryFiles = async (files) => {
+  if (!files || files.length === 0) return;
+  
+  try {
+    const deletePromises = files.map(file => 
+      cloudinary.uploader.destroy(file.publicId)
+    );
+    await Promise.all(deletePromises);
+  } catch (error) {
+    console.error("Error deleting files from Cloudinary:", error);
+  }
+};
+
+// 1. Create Pickup Request (UPDATED to handle file uploads)
 exports.createPickup = async (req, res) => {
   try {
     // Validate required fields
@@ -36,15 +102,35 @@ exports.createPickup = async (req, res) => {
       });
     }
     
-    const newPickup = new SchedulePickup(req.body);
+    // Process uploaded files
+    const uploadedFiles = processUploadedFiles(req.files);
+    
+    // Create pickup data
+    const pickupData = {
+      ...req.body,
+      deviceImages: uploadedFiles.deviceImages,
+      documents: uploadedFiles.documents
+    };
+    
+    const newPickup = new SchedulePickup(pickupData);
     await newPickup.save();
     
     res.status(201).json({
       success: true,
       message: "Pickup request created successfully",
-      data: newPickup
+      data: newPickup,
+      filesUploaded: {
+        images: uploadedFiles.deviceImages.length,
+        documents: uploadedFiles.documents.length
+      }
     });
   } catch (error) {
+    // If there was an error, clean up uploaded files
+    if (req.files) {
+      const uploadedFiles = processUploadedFiles(req.files);
+      await deleteCloudinaryFiles([...uploadedFiles.deviceImages, ...uploadedFiles.documents]);
+    }
+    
     if (error.name === "ValidationError") {
       const errors = Object.values(error.errors).map(err => err.message);
       return res.status(400).json({
@@ -63,7 +149,7 @@ exports.createPickup = async (req, res) => {
   }
 };
 
-// 2. Update Pickup Request
+// 2. Update Pickup Request (UPDATED to handle file uploads)
 exports.updatePickup = async (req, res) => {
   try {
     const { id } = req.params;
@@ -98,9 +184,30 @@ exports.updatePickup = async (req, res) => {
       }
     });
     
+    // Process any new uploaded files
+    const uploadedFiles = processUploadedFiles(req.files);
+    
+    // Prepare update data
+    const updateData = { ...req.body };
+    
+    // Add new files to existing ones (don't replace, append)
+    if (uploadedFiles.deviceImages.length > 0) {
+      updateData.$push = { 
+        ...(updateData.$push || {}),
+        deviceImages: { $each: uploadedFiles.deviceImages }
+      };
+    }
+    
+    if (uploadedFiles.documents.length > 0) {
+      updateData.$push = { 
+        ...(updateData.$push || {}),
+        documents: { $each: uploadedFiles.documents }
+      };
+    }
+    
     const updatedPickup = await SchedulePickup.findByIdAndUpdate(
       id, 
-      req.body, 
+      updateData, 
       { 
         new: true,
         runValidators: true
@@ -110,9 +217,19 @@ exports.updatePickup = async (req, res) => {
     res.json({
       success: true,
       message: "Pickup updated successfully",
-      data: updatedPickup
+      data: updatedPickup,
+      filesUploaded: {
+        images: uploadedFiles.deviceImages.length,
+        documents: uploadedFiles.documents.length
+      }
     });
   } catch (error) {
+    // If there was an error, clean up uploaded files
+    if (req.files) {
+      const uploadedFiles = processUploadedFiles(req.files);
+      await deleteCloudinaryFiles([...uploadedFiles.deviceImages, ...uploadedFiles.documents]);
+    }
+    
     if (error.name === "ValidationError") {
       const errors = Object.values(error.errors).map(err => err.message);
       return res.status(400).json({
@@ -131,7 +248,7 @@ exports.updatePickup = async (req, res) => {
   }
 };
 
-// 3. Cancel Pickup Request
+// 3. Cancel Pickup Request (SAME - no changes needed)
 exports.cancelPickup = async (req, res) => {
   try {
     const { id } = req.params;
@@ -181,7 +298,7 @@ exports.cancelPickup = async (req, res) => {
   }
 };
 
-// 4. Get Pickup Details
+// 4. Get Pickup Details (SAME - no changes needed, will include new fields automatically)
 exports.getPickupById = async (req, res) => {
   try {
     const { id } = req.params;
@@ -219,7 +336,7 @@ exports.getPickupById = async (req, res) => {
   }
 };
 
-// 5. Get All User Pickups
+// 5. Get All User Pickups (SAME - no changes needed)
 exports.getUserPickups = async (req, res) => {
   try {
     const { userId } = req.params;
@@ -271,7 +388,7 @@ exports.getUserPickups = async (req, res) => {
   }
 };
 
-// 6. Assign Recycler
+// 6. Assign Recycler (SAME - no changes needed)
 exports.assignRecycler = async (req, res) => {
   try {
     const { id } = req.params;
@@ -318,7 +435,7 @@ exports.assignRecycler = async (req, res) => {
   }
 };
 
-// 7. Assign Delivery Agent
+// 7. Assign Delivery Agent (SAME - no changes needed)
 exports.assignDeliveryAgent = async (req, res) => {
   try {
     const { id } = req.params;
@@ -368,7 +485,7 @@ exports.assignDeliveryAgent = async (req, res) => {
   }
 };
 
-// 8. Update Pickup Status
+// 8. Update Pickup Status (SAME - no changes needed)
 exports.updatePickupStatus = async (req, res) => {
   try {
     const { id } = req.params;
@@ -420,7 +537,7 @@ exports.updatePickupStatus = async (req, res) => {
   }
 };
 
-// 9. Track Pickup
+// 9. Track Pickup (SAME - no changes needed)
 exports.trackPickup = async (req, res) => {
   try {
     const { id } = req.params;
@@ -465,7 +582,7 @@ exports.trackPickup = async (req, res) => {
   }
 };
 
-// 10. Delete Pickup Request
+// 10. Delete Pickup Request (UPDATED to clean up Cloudinary files)
 exports.deletePickup = async (req, res) => {
   try {
     const { id } = req.params;
@@ -492,6 +609,10 @@ exports.deletePickup = async (req, res) => {
       });
     }
     
+    // Delete associated files from Cloudinary before deleting the pickup
+    const filesToDelete = [...pickup.deviceImages, ...pickup.documents];
+    await deleteCloudinaryFiles(filesToDelete);
+    
     await SchedulePickup.findByIdAndDelete(id);
     
     res.json({
@@ -503,6 +624,79 @@ exports.deletePickup = async (req, res) => {
     res.status(500).json({
       success: false,
       message: "Internal server error while deleting pickup",
+      error: process.env.NODE_ENV === "development" ? error.message : "Something went wrong"
+    });
+  }
+};
+
+// NEW: Remove specific files from pickup (bonus utility function)
+exports.removePickupFile = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { fileId, fileType } = req.body; // fileType: 'image' or 'document'
+    
+    if (!isValidObjectId(id)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid pickup ID format"
+      });
+    }
+    
+    if (!fileId || !['image', 'document'].includes(fileType)) {
+      return res.status(400).json({
+        success: false,
+        message: "File ID and valid file type (image/document) are required"
+      });
+    }
+    
+    const pickup = await SchedulePickup.findById(id);
+    if (!pickup) {
+      return res.status(404).json({
+        success: false,
+        message: "Pickup not found"
+      });
+    }
+    
+    if (pickup.pickupStatus !== "Pending") {
+      return res.status(400).json({
+        success: false,
+        message: "Files cannot be removed after pickup confirmation"
+      });
+    }
+    
+    let fileToDelete = null;
+    let updateQuery = {};
+    
+    if (fileType === 'image') {
+      fileToDelete = pickup.deviceImages.find(img => img._id.toString() === fileId);
+      updateQuery = { $pull: { deviceImages: { _id: fileId } } };
+    } else {
+      fileToDelete = pickup.documents.find(doc => doc._id.toString() === fileId);
+      updateQuery = { $pull: { documents: { _id: fileId } } };
+    }
+    
+    if (!fileToDelete) {
+      return res.status(404).json({
+        success: false,
+        message: "File not found"
+      });
+    }
+    
+    // Delete from Cloudinary
+    await cloudinary.uploader.destroy(fileToDelete.publicId);
+    
+    // Remove from database
+    await SchedulePickup.findByIdAndUpdate(id, updateQuery);
+    
+    res.json({
+      success: true,
+      message: "File removed successfully"
+    });
+  } catch (error) {
+    console.error("Error removing file:", error);
+    res.status(500).json({
+      success: false,
+      message: "Internal server error while removing file",
       error: process.env.NODE_ENV === "development" ? error.message : "Something went wrong"
     });
   }
