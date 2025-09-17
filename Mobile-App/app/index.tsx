@@ -14,13 +14,12 @@ export default function Index() {
         // Simulate splash delay (e.g., 1.5s) for branding
         await new Promise(res => setTimeout(res, 1500));
 
-        // Check for stored token or user id
-        const token = await AsyncStorage.getItem("token");
-        if (token) {
-          router.replace("/(tabs)/home");   // logged in
-        } else {
-          router.replace("/auth/login");     // not logged in
-        }
+        // ✅ Nuclear option: Clear all AsyncStorage
+        await AsyncStorage.clear();
+        
+        // Always go to login screen
+        router.replace("/auth/login");
+        
       } catch (err) {
         console.error("Error checking login:", err);
         router.replace("/auth/login");
@@ -33,7 +32,6 @@ export default function Index() {
   }, [router]);
 
   if (checking) {
-    // ✅ Fixed: Added flex: 1 to make the View fill the entire screen
     return (
       <View style={{ flex: 1 }}>
         <Splash />
@@ -41,6 +39,5 @@ export default function Index() {
     );
   }
 
-  // ✅ Added: Return null when not checking (though router.replace should handle navigation)
   return null;
 }

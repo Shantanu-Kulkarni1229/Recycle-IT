@@ -19,19 +19,21 @@ const { width: screenWidth, height: screenHeight } = Dimensions.get("window");
 export default function Home() {
   const router = useRouter();
   
-  // Animation values
+  // Separate animation values for native and non-native drivers
   const fadeAnim = useRef(new Animated.Value(0)).current;
-  const slideAnim = useRef(new Animated.Value(50)).current;
+  const slideAnimNative = useRef(new Animated.Value(50)).current; // For native transforms
   const scaleAnim = useRef(new Animated.Value(0.8)).current;
   const rotateAnim = useRef(new Animated.Value(0)).current;
   const waveAnim = useRef(new Animated.Value(0)).current;
-  const progressAnim = useRef(new Animated.Value(0)).current;
+  const progressAnim = useRef(new Animated.Value(0)).current; // Non-native for width
   const tipFadeAnim = useRef(new Animated.Value(1)).current;
   
-  // Truck animation values
-  const truckPositionAnim = useRef(new Animated.Value(-100)).current;
+  // Enhanced truck animation values
+  const truckPositionAnim = useRef(new Animated.Value(0)).current;
   const truckOpacityAnim = useRef(new Animated.Value(0)).current;
   const buttonScaleAnim = useRef(new Animated.Value(1)).current;
+  const textOpacityAnim = useRef(new Animated.Value(1)).current;
+  const buttonBackgroundAnim = useRef(new Animated.Value(0)).current; // Non-native for background
   
   // State for dynamic content
   const [currentTip, setCurrentTip] = useState(0);
@@ -64,7 +66,7 @@ export default function Home() {
           easing: Easing.out(Easing.cubic),
           useNativeDriver: true,
         }),
-        Animated.timing(slideAnim, {
+        Animated.timing(slideAnimNative, {
           toValue: 0,
           duration: 800,
           easing: Easing.out(Easing.cubic),
@@ -86,7 +88,7 @@ export default function Home() {
           toValue: 1,
           duration: 1200,
           easing: Easing.out(Easing.cubic),
-          useNativeDriver: false,
+          useNativeDriver: false, // Non-native for width
         }).start();
       }, 400);
     };
@@ -161,53 +163,107 @@ export default function Home() {
     };
   }, []);
 
-  // Truck animation function
+  // Enhanced truck animation function with perfect timing
   const animateTruckAndNavigate = useCallback(() => {
     if (isAnimatingTruck) return;
     
     setIsAnimatingTruck(true);
 
-    // Reset truck position
-    truckPositionAnim.setValue(-100);
+    // Reset all animation values to initial state
+    truckPositionAnim.setValue(0);
     truckOpacityAnim.setValue(0);
+    textOpacityAnim.setValue(1);
+    buttonBackgroundAnim.setValue(0);
+    buttonScaleAnim.setValue(1);
 
-    // Start truck animation sequence
+    // Create the perfect truck animation sequence
     Animated.sequence([
-      // Button press feedback
+      // 1. Button press feedback (quick and subtle)
       Animated.timing(buttonScaleAnim, {
-        toValue: 0.98,
-        duration: 80,
+        toValue: 0.96,
+        duration: 100,
         easing: Easing.out(Easing.quad),
         useNativeDriver: true,
       }),
-      Animated.timing(buttonScaleAnim, {
-        toValue: 1,
-        duration: 120,
-        easing: Easing.out(Easing.quad),
-        useNativeDriver: true,
-      }),
+      
+      // 2. Button returns to normal size while truck appears
       Animated.parallel([
-        Animated.timing(truckOpacityAnim, {
+        Animated.timing(buttonScaleAnim, {
           toValue: 1,
           duration: 200,
+          easing: Easing.out(Easing.back(1.1)),
           useNativeDriver: true,
         }),
-        Animated.timing(truckPositionAnim, {
-          toValue: screenWidth + 50,
-          duration: 1200,
-          easing: Easing.inOut(Easing.quad),
+        // Truck fades in quickly
+        Animated.timing(truckOpacityAnim, {
+          toValue: 1,
+          duration: 300,
+          easing: Easing.out(Easing.quad),
           useNativeDriver: true,
         }),
       ]),
-      Animated.timing(truckOpacityAnim, {
-        toValue: 0,
-        duration: 200,
-        useNativeDriver: true,
-      }),
+      
+      // 3. Main truck journey with synchronized effects
+      Animated.parallel([
+        // Truck moves smoothly across the button
+        Animated.timing(truckPositionAnim, {
+          toValue: 1,
+          duration: 3000, // 3 seconds for smooth journey
+          easing: Easing.inOut(Easing.quad),
+          useNativeDriver: true,
+        }),
+        // Text starts fading when truck is 25% across
+        Animated.timing(textOpacityAnim, {
+          toValue: 0,
+          duration: 1000,
+          delay: 500, // Start fading when truck is 25% across
+          easing: Easing.out(Easing.quad),
+          useNativeDriver: true,
+        }),
+        // Button background starts changing when truck is 20% across
+        Animated.timing(buttonBackgroundAnim, {
+          toValue: 1,
+          duration: 1500,
+          delay: 400,
+          easing: Easing.inOut(Easing.quad),
+          useNativeDriver: false,
+        }),
+      ]),
+      
+      // 4. Hold the final state briefly
+      Animated.delay(300),
+      
+      // 5. Truck disappears and button returns to original state
+      Animated.parallel([
+        Animated.timing(truckOpacityAnim, {
+          toValue: 0,
+          duration: 400,
+          easing: Easing.in(Easing.quad),
+          useNativeDriver: true,
+        }),
+        // Button background returns to original
+        Animated.timing(buttonBackgroundAnim, {
+          toValue: 0,
+          duration: 600,
+          easing: Easing.out(Easing.quad),
+          useNativeDriver: false,
+        }),
+        // Text comes back
+        Animated.timing(textOpacityAnim, {
+          toValue: 1,
+          duration: 400,
+          delay: 200,
+          easing: Easing.out(Easing.quad),
+          useNativeDriver: true,
+        }),
+      ]),
+      
     ]).start(() => {
       setIsAnimatingTruck(false);
-      // Navigate after animation completes
-      router.push("/pickup-schedule");
+      // Navigate after complete animation
+      setTimeout(() => {
+        router.push("/pickup-schedule");
+      }, 200);
     });
   }, [isAnimatingTruck, router]);
 
@@ -225,6 +281,28 @@ export default function Home() {
   const waveOpacity = waveAnim.interpolate({
     inputRange: [0, 0.5, 1],
     outputRange: [0.8, 1, 0.8],
+  });
+
+  // Enhanced truck position interpolation - perfectly sized for button
+  const truckTranslateX = truckPositionAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [320, -40], // Start from right (320), end at left (-40)
+  });
+
+  // Enhanced button background color interpolation with smoother transition
+  const buttonBackgroundColor = buttonBackgroundAnim.interpolate({
+    inputRange: [0, 0.5, 1],
+    outputRange: [
+      'rgba(16, 185, 129, 1)', // Original green
+      'rgba(59, 130, 246, 0.8)', // Mid-transition blue
+      'rgba(139, 92, 246, 1)' // Final purple
+    ],
+  });
+
+  // Add subtle shadow animation
+  const buttonShadowOpacity = buttonBackgroundAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0.3, 0.6],
   });
 
   // Progress Bar Component
@@ -338,7 +416,7 @@ export default function Home() {
           paddingHorizontal: 24,
           paddingBottom: 24,
           opacity: fadeAnim,
-          transform: [{ translateY: slideAnim }],
+          transform: [{ translateY: slideAnimNative }],
         }}
         >
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -394,7 +472,7 @@ export default function Home() {
           </View>
         </Animated.View>
 
-        {/* Hero Section with truck animation */}
+        {/* Hero Section with enhanced truck animation */}
         <Animated.View
           style={{
             paddingHorizontal: 24,
@@ -447,7 +525,7 @@ export default function Home() {
               </Text>
             </View>
 
-            {/* Custom Truck Animation Button */}
+            {/* Enhanced Custom Truck Animation Button */}
             <View style={{ position: 'relative', overflow: 'hidden', borderRadius: 20 }}>
               <Animated.View
                 style={{
@@ -456,55 +534,89 @@ export default function Home() {
               >
                 <TouchableOpacity
                   onPress={animateTruckAndNavigate}
-                  activeOpacity={0.9}
+                  activeOpacity={0.95}
                   disabled={isAnimatingTruck}
                   style={{ position: 'relative', overflow: 'hidden', borderRadius: 20 }}
                 >
-                  <LinearGradient
-                    colors={['#10b981', '#059669', '#047857']}
-                    locations={[0, 0.6, 1]}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 1 }}
+                  {/* Dynamic Button Background with enhanced styling */}
+                  <Animated.View
                     style={{
-                      paddingVertical: 18,
+                      backgroundColor: buttonBackgroundColor,
+                      paddingVertical: 20,
                       paddingHorizontal: 32,
                       borderRadius: 20,
                       shadowColor: '#047857',
                       shadowOffset: { width: 0, height: 8 },
-                      shadowOpacity: 0.3,
+                      shadowOpacity: buttonShadowOpacity,
                       shadowRadius: 16,
                       elevation: 8,
+                      position: 'relative',
+                      overflow: 'hidden',
+                      minHeight: 64, // Ensure consistent height
                     }}
                   >
-                    <Text style={{
-                      color: '#fff',
-                      textAlign: 'center',
-                      fontSize: 18,
-                      fontWeight: '700',
-                      letterSpacing: 0.5,
-                    }}>
+                    {/* Animated Text with better positioning */}
+                    <Animated.Text 
+                      style={{
+                        color: '#fff',
+                        textAlign: 'center',
+                        fontSize: 18,
+                        fontWeight: '700',
+                        letterSpacing: 0.5,
+                        opacity: textOpacityAnim,
+                        position: 'absolute',
+                        left: 0,
+                        right: 0,
+                        top: '50%',
+                        marginTop: 6, // Half of text height for perfect centering
+                      }}
+                    >
                       Schedule Pickup
-                    </Text>
-                  </LinearGradient>
-                </TouchableOpacity>
-              </Animated.View>
+                    </Animated.Text>
 
-              {/* Truck Animation Overlay */}
-              <Animated.View
-                style={{
-                  position: 'absolute',
-                  top: '50%',
-                  left: 0,
-                  transform: [
-                    { translateX: truckPositionAnim },
-                    { translateY: -12 }
-                  ],
-                  opacity: truckOpacityAnim,
-                  zIndex: 10,
-                }}
-                pointerEvents="none"
-              >
-                <Text style={{ fontSize: 24 }}>🚛</Text>
+                    {/* Enhanced Truck Animation with perfect sizing */}
+                    <Animated.View
+                      style={{
+                        position: 'absolute',
+                        top: '50%',
+                        left: 0,
+                        right: 0,
+                        transform: [
+                          { translateX: truckTranslateX },
+                          { translateY: -14 } // Perfect vertical centering
+                        ],
+                        opacity: truckOpacityAnim,
+                        zIndex: 10,
+                      }}
+                      pointerEvents="none"
+                    >
+                      <Text style={{ 
+                        fontSize: 52,
+                        textShadowColor: 'rgba(0,0,0,0.3)',
+                        textShadowOffset: { width: 2, height: 2 },
+                        textShadowRadius: 4,
+                        // Remove rotate: '360deg' for emoji, or use flip if needed
+                      }}>
+                        🚛
+                      </Text>
+                    </Animated.View>
+
+                    {/* Subtle gradient overlay for depth */}
+                    <Animated.View
+                      style={{
+                        position: 'absolute',
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        // background: 'linear-gradient(45deg, rgba(255,255,255,0.1), rgba(255,255,255,0))', // Not valid in React Native
+                        backgroundColor: 'skyblue',
+                        opacity: buttonBackgroundAnim,
+                        borderRadius: 20,
+                      }}
+                    />
+                  </Animated.View>
+                </TouchableOpacity>
               </Animated.View>
             </View>
 
@@ -551,7 +663,7 @@ export default function Home() {
             marginHorizontal: 24,
             marginBottom: 24,
             opacity: fadeAnim,
-            transform: [{ translateY: slideAnim }],
+            transform: [{ translateY: slideAnimNative }],
           }}
         >
           <LinearGradient
@@ -597,7 +709,7 @@ export default function Home() {
                 color: '#065f46',
                 fontSize: 16,
                 lineHeight: 24,
-                opacity: tipFadeAnim, // <-- use tipFadeAnim here
+                opacity: tipFadeAnim,
                 fontWeight: '500',
               }}
               key={currentTip}
@@ -633,7 +745,7 @@ export default function Home() {
             marginHorizontal: 24,
             marginBottom: 24,
             opacity: fadeAnim,
-            transform: [{ translateY: slideAnim }],
+            transform: [{ translateY: slideAnimNative }],
           }}
         >
           <LinearGradient
@@ -692,7 +804,7 @@ export default function Home() {
             marginHorizontal: 24,
             marginBottom: 24,
             opacity: fadeAnim,
-            transform: [{ translateY: slideAnim }],
+            transform: [{ translateY: slideAnimNative }],
           }}
         >
           <View style={{ marginBottom: 16 }}>
@@ -829,7 +941,7 @@ export default function Home() {
             marginHorizontal: 24,
             marginBottom: 24,
             opacity: fadeAnim,
-            transform: [{ translateY: slideAnim }],
+            transform: [{ translateY: slideAnimNative }],
           }}
         >
           <LinearGradient
@@ -910,7 +1022,7 @@ export default function Home() {
             marginHorizontal: 24,
             marginBottom: 32,
             opacity: fadeAnim,
-            transform: [{ translateY: slideAnim }],
+            transform: [{ translateY: slideAnimNative }],
           }}
         >
           <LinearGradient

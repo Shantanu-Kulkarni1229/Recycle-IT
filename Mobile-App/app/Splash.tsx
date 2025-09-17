@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { View, Text, ActivityIndicator, Animated, Easing, Dimensions } from "react-native";
+import { View, Text, ActivityIndicator, Animated, Easing, Dimensions, StatusBar } from "react-native";
 import { useRouter } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useUser } from "@/context/UserContext";
@@ -12,105 +12,108 @@ export default function Splash() {
   const { setUserId } = useUser();
   const [checking, setChecking] = useState(true);
   
-  // Animation values
+  // Minimal animation values
   const fadeAnim = new Animated.Value(0);
-  const scaleAnim = new Animated.Value(0.8);
-  const leafScale1 = new Animated.Value(0);
-  const leafScale2 = new Animated.Value(0);
-  const leafScale3 = new Animated.Value(0);
-  const particleAnim = new Animated.Value(0);
+  const scaleAnim = new Animated.Value(0.9);
+  const slideUpAnim = new Animated.Value(30);
+  const iconRotateAnim = new Animated.Value(0);
+  const pulseAnim = new Animated.Value(1);
   
-  // Particle positions
-  const particles = Array.from({ length: 15 }).map(() => ({
+  // Simple floating particles (reduced count)
+  const particles = Array.from({ length: 8 }).map(() => ({
     x: new Animated.Value(Math.random() * width),
     y: new Animated.Value(Math.random() * height),
-    scale: new Animated.Value(0),
     opacity: new Animated.Value(0),
+    scale: new Animated.Value(0),
   }));
 
   useEffect(() => {
-    // Start animations
-    Animated.parallel([
-      // Main content fade in and scale
-      Animated.timing(fadeAnim, {
-        toValue: 1,
-        duration: 1200,
-        easing: Easing.out(Easing.ease),
-        useNativeDriver: true,
-      }),
-      Animated.timing(scaleAnim, {
-        toValue: 1,
-        duration: 1200,
-        easing: Easing.out(Easing.ease),
-        useNativeDriver: true,
-      }),
-      
-      // Leaf animations (staggered)
-      Animated.stagger(200, [
-        Animated.timing(leafScale1, {
+    StatusBar.setBarStyle('light-content');
+    
+    // Clean, professional animation sequence
+    Animated.sequence([
+      // Initial fade and scale in
+      Animated.parallel([
+        Animated.timing(fadeAnim, {
           toValue: 1,
-          duration: 800,
-          easing: Easing.elastic(1.2),
+          duration: 1000,
+          easing: Easing.out(Easing.quad),
           useNativeDriver: true,
         }),
-        Animated.timing(leafScale2, {
+        Animated.timing(scaleAnim, {
           toValue: 1,
-          duration: 800,
-          easing: Easing.elastic(1.2),
+          duration: 1000,
+          easing: Easing.out(Easing.back(1.1)),
           useNativeDriver: true,
         }),
-        Animated.timing(leafScale3, {
-          toValue: 1,
-          duration: 800,
-          easing: Easing.elastic(1.2),
+        Animated.timing(slideUpAnim, {
+          toValue: 0,
+          duration: 1200,
+          easing: Easing.out(Easing.cubic),
           useNativeDriver: true,
         }),
       ]),
       
-      // Particle animation
-      Animated.timing(particleAnim, {
+      // Icon rotation (subtle)
+      Animated.timing(iconRotateAnim, {
         toValue: 1,
-        duration: 2000,
+        duration: 800,
         easing: Easing.out(Easing.quad),
-        useNativeDriver: false,
+        useNativeDriver: true,
       }),
     ]).start();
 
-    // Animate particles
-    particles.forEach(particle => {
-      // Random delay for each particle
-      const delay = Math.random() * 1000;
+    // Gentle pulsing effect
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulseAnim, {
+          toValue: 1.05,
+          duration: 2000,
+          easing: Easing.inOut(Easing.quad),
+          useNativeDriver: true,
+        }),
+        Animated.timing(pulseAnim, {
+          toValue: 1,
+          duration: 2000,
+          easing: Easing.inOut(Easing.quad),
+          useNativeDriver: true,
+        }),
+      ])
+    ).start();
+
+    // Minimal particle animations
+    particles.forEach((particle, index) => {
+      const delay = index * 200 + 500;
       
-      // Show particle
       setTimeout(() => {
         Animated.parallel([
-          Animated.timing(particle.scale, {
-            toValue: 1,
-            duration: 800,
-            easing: Easing.elastic(1),
+          Animated.timing(particle.opacity, {
+            toValue: 0.3,
+            duration: 1000,
+            easing: Easing.out(Easing.quad),
             useNativeDriver: true,
           }),
-          Animated.timing(particle.opacity, {
+          Animated.spring(particle.scale, {
             toValue: 1,
-            duration: 600,
-            easing: Easing.out(Easing.quad),
+            tension: 50,
+            friction: 8,
             useNativeDriver: true,
           }),
         ]).start();
         
-        // Float animation
+        // Gentle floating
         Animated.loop(
           Animated.sequence([
             Animated.timing(particle.y, {
-              toValue: (particle.y as any).__getValue() - 20 - Math.random() * 30,
-              duration: 1500 + Math.random() * 1000,
-              easing: Easing.inOut(Easing.quad),
+              toValue: (particle.y as any).__getValue() - 20,
+              duration: 3000,
+              easing: Easing.inOut(Easing.sin),
               useNativeDriver: true,
             }),
             Animated.timing(particle.y, {
-              toValue: (particle.y as any).__getValue() + 20 + Math.random() * 30,
-              duration: 1500 + Math.random() * 1000,
-              easing: Easing.inOut(Easing.quad),
+              toValue: (particle.y as any).__getValue() + 20,
+              duration: 3000,
+              easing: Easing.inOut(Easing.sin),
               useNativeDriver: true,
             }),
           ])
@@ -120,18 +123,16 @@ export default function Splash() {
 
     const checkLogin = async () => {
       try {
-        // Wait for animations to complete before checking login
-        await new Promise((res) => setTimeout(res, 2500));
-
+        await new Promise((res) => setTimeout(res, 2800));
+        
         const token = await AsyncStorage.getItem("userToken");
         const storedId = await AsyncStorage.getItem("userId");
-
+        
         if (token && storedId) {
-          // update context so the rest of app knows we're logged in
           await setUserId(storedId);
-          router.replace("/(tabs)/home");   // go straight to Home tab
+          router.replace("/(tabs)/home");
         } else {
-          router.replace("./auth/login");  // go to login screen
+          router.replace("./auth/login");
         }
       } catch (err) {
         console.log("Splash check error:", err);
@@ -145,84 +146,199 @@ export default function Splash() {
   }, []);
 
   return (
-    <View className="flex-1 items-center justify-center bg-green-600">
-      {/* Animated particles */}
+    <View style={{
+      flex: 1,
+      backgroundColor: '#0d4f3c', // Deep professional green
+      justifyContent: 'center',
+      alignItems: 'center',
+    }}>
+      {/* Subtle gradient overlay */}
+      <View style={{
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        background: 'linear-gradient(135deg, #0d4f3c 0%, #10684e 100%)',
+        opacity: 0.8,
+      }} />
+
+      {/* Minimal floating particles */}
       {particles.map((particle, index) => (
         <Animated.View
           key={index}
           style={{
             position: 'absolute',
-            left: particle.x,
-            top: particle.y,
-            transform: [{ scale: particle.scale }],
+            width: 4,
+            height: 4,
+            backgroundColor: '#4ade80',
+            borderRadius: 2,
+            transform: [
+              { translateX: particle.x },
+              { translateY: particle.y },
+              { scale: particle.scale }
+            ],
             opacity: particle.opacity,
-            width: 6 + Math.random() * 6,
-            height: 6 + Math.random() * 6,
-            borderRadius: 50,
-            backgroundColor: ['#86efac', '#4ade80', '#22c55e', '#16a34a'][index % 4],
           }}
         />
       ))}
-      
+
       {/* Main content */}
-      <Animated.View 
-        className="items-center justify-center"
+      <Animated.View
         style={{
+          alignItems: 'center',
+          transform: [
+            { scale: scaleAnim },
+            { translateY: slideUpAnim }
+          ],
           opacity: fadeAnim,
-          transform: [{ scale: scaleAnim }]
         }}
       >
-        {/* Leaf icon group */}
-        <View className="flex-row mb-6">
-          <Animated.View style={{ transform: [{ scale: leafScale1 }], marginHorizontal: 5 }}>
-            <Ionicons name="leaf" size={36} color="#d9f99d" />
-          </Animated.View>
-          <Animated.View style={{ transform: [{ scale: leafScale2 }], marginHorizontal: 5 }}>
-            <Ionicons name="leaf" size={42} color="#bef264" />
-          </Animated.View>
-          <Animated.View style={{ transform: [{ scale: leafScale3 }], marginHorizontal: 5 }}>
-            <Ionicons name="leaf" size={36} color="#d9f99d" />
-          </Animated.View>
-        </View>
-        
-        <Text className="text-white text-4xl font-bold mb-2">
-          Recycle IT
-        </Text>
-        
-        <Text className="text-green-100 text-lg mb-8">
-          Giving e-waste a new life
-        </Text>
-        
-        {/* Loading indicator with animation */}
-        <View className="mt-10">
+        {/* Subtle background glow */}
+        <Animated.View
+          style={{
+            position: 'absolute',
+            width: 120,
+            height: 120,
+            backgroundColor: '#22c55e',
+            borderRadius: 60,
+            opacity: 0.1,
+            transform: [{ scale: pulseAnim }],
+          }}
+        />
+
+        {/* Main icon */}
+        <Animated.View
+          style={{
+            marginBottom: 40,
+            transform: [
+              { scale: pulseAnim },
+              { rotate: iconRotateAnim.interpolate({
+                inputRange: [0, 1],
+                outputRange: ['0deg', '5deg'],
+              }) }
+            ],
+          }}
+        >
+          <View style={{
+            width: 80,
+            height: 80,
+            backgroundColor: '#22c55e',
+            borderRadius: 40,
+            justifyContent: 'center',
+            alignItems: 'center',
+            shadowColor: '#22c55e',
+            shadowOffset: { width: 0, height: 8 },
+            shadowOpacity: 0.3,
+            shadowRadius: 16,
+            elevation: 8,
+          }}>
+            <Ionicons name="leaf" size={40} color="#ffffff" />
+          </View>
+        </Animated.View>
+
+        {/* App title */}
+        <Animated.View
+          style={{
+            opacity: fadeAnim,
+            transform: [{ translateY: slideUpAnim }],
+          }}
+        >
+          <Text
+            style={{
+              fontSize: 32,
+              fontWeight: '700',
+              color: '#ffffff',
+              textAlign: 'center',
+              marginBottom: 8,
+              letterSpacing: 1.2,
+            }}
+          >
+            Recycle IT
+          </Text>
+        </Animated.View>
+
+        {/* Subtitle */}
+        <Animated.View
+          style={{
+            opacity: fadeAnim.interpolate({
+              inputRange: [0, 1],
+              outputRange: [0, 0.8],
+            }),
+            transform: [{ translateY: slideUpAnim }],
+          }}
+        >
+          <Text
+            style={{
+              fontSize: 16,
+              color: '#a7f3d0',
+              textAlign: 'center',
+              marginBottom: 60,
+              fontWeight: '400',
+              letterSpacing: 0.5,
+            }}
+          >
+            Giving e-waste a new life
+          </Text>
+        </Animated.View>
+
+        {/* Loading indicator */}
+        <Animated.View
+          style={{
+            opacity: fadeAnim,
+          }}
+        >
           {checking && (
-            <Animated.View 
-              style={{ 
-                opacity: fadeAnim,
-                transform: [{ scale: scaleAnim }] 
-              }}
-            >
-              <ActivityIndicator size="large" color="#fff" />
-              <Text className="text-green-100 mt-3 text-center">
-                Preparing your eco-journey...
+            <View style={{
+              alignItems: 'center',
+              backgroundColor: 'rgba(255, 255, 255, 0.1)',
+              paddingHorizontal: 24,
+              paddingVertical: 16,
+              borderRadius: 12,
+              borderWidth: 1,
+              borderColor: 'rgba(34, 197, 94, 0.3)',
+              backdropFilter: 'blur(10px)',
+            }}>
+              <ActivityIndicator 
+                size="small" 
+                color="#4ade80" 
+                style={{ marginBottom: 12 }}
+              />
+              <Text
+                style={{
+                  color: '#ffffff',
+                  fontSize: 14,
+                  fontWeight: '500',
+                  textAlign: 'center',
+                  opacity: 0.9,
+                }}
+              >
+                Loading...
               </Text>
-            </Animated.View>
+            </View>
           )}
-        </View>
+        </Animated.View>
       </Animated.View>
-      
-      {/* Footer with subtle animation */}
-      <Animated.View 
-        className="absolute bottom-10"
-        style={{ 
-          opacity: fadeAnim,
-          transform: [{ translateY: fadeAnim.interpolate({
+
+      {/* Footer */}
+      <Animated.View
+        style={{
+          position: 'absolute',
+          bottom: 60,
+          opacity: fadeAnim.interpolate({
             inputRange: [0, 1],
-            outputRange: [20, 0]
-          })}] 
+            outputRange: [0, 0.6],
+          }),
         }}
       >
-        <Text className="text-green-200 text-sm">
+        <Text
+          style={{
+            color: '#a7f3d0',
+            fontSize: 14,
+            fontWeight: '400',
+            textAlign: 'center',
+          }}
+        >
           Together for a greener planet
         </Text>
       </Animated.View>
