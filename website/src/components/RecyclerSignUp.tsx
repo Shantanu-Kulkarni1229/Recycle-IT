@@ -191,6 +191,12 @@ const RecyclerSignUp: React.FC<RecyclerSignUpProps> = ({ onSignUp, onBackToLogin
       return;
     }
 
+    // Check if legal agreement was already accepted
+    if (legalAccepted) {
+      await proceedWithRegistration();
+      return;
+    }
+
     // Show legal agreement modal before proceeding
     setShowLegalModal(true);
   };

@@ -1,12 +1,24 @@
 import React, { useState, useEffect } from 'react';
-import { ewasteAPI, recyclerPickupAPI } from '../services/completeAPI';
+import { 
+  Eye, 
+  Search, 
+  Filter, 
+  Calendar,
+  ChevronRight,
+  CheckCircle,
+  Clock,
+  AlertTriangle,
+  Shield
+} from 'lucide-react';
+import DeviceInspection from '../components/DeviceInspection';
+import VerificationDashboard from '../components/VerificationDashboard';
 
 interface EwasteItem {
   _id: string;
   deviceType: string;
   condition: string;
   estimatedValue: number;
-  inspectionStatus: string;
+  inspectionStatus?: string;
   inspectionNotes?: string;
   inspectionDate?: string;
   photos?: string[];
@@ -14,35 +26,55 @@ interface EwasteItem {
   userDetails?: any;
   brand?: string;
   model?: string;
+  deviceConditionReport?: any;
+  scheduledDate?: string;
+  pickupAddress?: string;
 }
+
+type ViewMode = 'list' | 'inspect' | 'verification';
 
 const EwasteInspection: React.FC = () => {
   const [ewasteItems, setEwasteItems] = useState<EwasteItem[]>([]);
   const [selectedItem, setSelectedItem] = useState<EwasteItem | null>(null);
+  const [viewMode, setViewMode] = useState<ViewMode>('list');
   const [isLoading, setIsLoading] = useState(true);
-  const [isInspecting, setIsInspecting] = useState(false);
   const [error, setError] = useState('');
-  const [inspectionData, setInspectionData] = useState({
-    condition: '',
-    estimatedValue: '',
-    notes: '',
-    status: 'pending'
-  });
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
 
   useEffect(() => {
     const loadEwasteItems = async () => {
       try {
         setIsLoading(true);
-        const response = await ewasteAPI.getAssignedEwaste();
+        setError('');
         
-        if (response.success) {
-          setEwasteItems(response.data || []);
+        // Get recycler ID from local storage
+        const recyclerData = localStorage.getItem('recyclerData');
+        if (!recyclerData) {
+          setError('Recycler data not found');
+          return;
+        }
+        
+        const { _id: recyclerId } = JSON.parse(recyclerData);
+        const token = localStorage.getItem('recyclerToken');
+        
+        const response = await fetch(`http://localhost:5000/api/recycler-pickups/recycler/${recyclerId}`, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+
+        const result = await response.json();
+        
+        if (result.success) {
+          setEwasteItems(result.data || []);
         } else {
-          setEwasteItems([]);
+          setError(result.message || 'Failed to load items');
         }
       } catch (error) {
         console.error('Error loading e-waste items:', error);
-        setEwasteItems([]);
+        setError('Network error. Please try again.');
       } finally {
         setIsLoading(false);
       }
@@ -51,108 +83,74 @@ const EwasteInspection: React.FC = () => {
     loadEwasteItems();
   }, []);
 
-  const loadEwasteItemsRefresh = async () => {
-    try {
-      setIsLoading(true);
-      setError('');
-      
-      const response = await ewasteAPI.getAssignedEwaste();
-      if (response.success && response.ewaste) {
-        setEwasteItems(response.ewaste);
-      } else {
-        setEwasteItems([]);
-      }
-    } catch (err: any) {
-      console.error('E-waste loading error:', err);
-      setError('Failed to load e-waste items.');
-      setEwasteItems([]);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleInspectionSubmit = async () => {
-    if (!selectedItem) return;
-    
-    try {
-      setIsInspecting(true);
-      setError('');
-      
-      const inspectionPayload = {
-        condition: inspectionData.condition,
-        estimatedValue: parseFloat(inspectionData.estimatedValue),
-        notes: inspectionData.notes,
-        inspectionDate: new Date().toISOString()
-      };
-      
-      // Update via recycler pickup API
-      await recyclerPickupAPI.inspectDevice(selectedItem._id, inspectionPayload);
-      
-      // Update e-waste inspection status
-      await ewasteAPI.updateInspectionStatus(
-        selectedItem._id, 
-        'completed', 
-        inspectionData.notes
-      );
-      
-      // Update local state
-      setEwasteItems(prev => prev.map(item => 
-        item._id === selectedItem._id 
-          ? { 
-              ...item, 
-              condition: inspectionData.condition,
-              estimatedValue: parseFloat(inspectionData.estimatedValue),
-              inspectionStatus: 'completed',
-              inspectionNotes: inspectionData.notes,
-              inspectionDate: new Date().toISOString()
-            }
-          : item
-      ));
-      
-      setSelectedItem(null);
-      setInspectionData({ condition: '', estimatedValue: '', notes: '', status: 'pending' });
-      
-    } catch (err: any) {
-      setError('Failed to submit inspection');
-    } finally {
-      setIsInspecting(false);
-    }
-  };
-
-  const getConditionColor = (condition: string) => {
-    switch (condition.toLowerCase()) {
-      case 'excellent':
-        return 'bg-green-100 text-green-800';
-      case 'good':
-        return 'bg-blue-100 text-blue-800';
-      case 'fair':
-        return 'bg-yellow-100 text-yellow-800';
-      case 'poor':
-        return 'bg-red-100 text-red-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
-    }
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
+  const getStatusIcon = (status: string = '') => {
+    switch (status.toLowerCase()) {
       case 'completed':
-        return 'bg-green-100 text-green-800';
-      case 'in_progress':
-        return 'bg-blue-100 text-blue-800';
+        return <CheckCircle className="w-5 h-5 text-green-600" />;
+      case 'under inspection':
+        return <Eye className="w-5 h-5 text-blue-600" />;
       case 'pending':
-        return 'bg-yellow-100 text-yellow-800';
+        return <Clock className="w-5 h-5 text-yellow-600" />;
       default:
-        return 'bg-gray-100 text-gray-800';
+        return <AlertTriangle className="w-5 h-5 text-gray-600" />;
     }
   };
 
-  const pendingItems = ewasteItems.filter(item => item.inspectionStatus === 'pending');
-  const completedItems = ewasteItems.filter(item => item.inspectionStatus === 'completed');
+  const getStatusColor = (status: string = '') => {
+    switch (status.toLowerCase()) {
+      case 'completed': return 'text-green-600 bg-green-100';
+      case 'under inspection': return 'text-blue-600 bg-blue-100';
+      case 'pending': return 'text-yellow-600 bg-yellow-100';
+      default: return 'text-gray-600 bg-gray-100';
+    }
+  };
+
+  const filteredItems = ewasteItems.filter(item => {
+    const deviceType = item.deviceType || '';
+    const brand = item.brand || '';
+    const model = item.model || '';
+    const inspectionStatus = item.inspectionStatus || 'pending';
+    
+    const matchesSearch = deviceType.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         brand.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         model.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    const matchesStatus = statusFilter === 'all' || 
+                         inspectionStatus.toLowerCase() === statusFilter.toLowerCase();
+    
+    return matchesSearch && matchesStatus;
+  });
+
+  const handleInspectDevice = (item: EwasteItem) => {
+    setSelectedItem(item);
+    setViewMode('inspect');
+  };
+
+  const handleViewVerification = (item: EwasteItem) => {
+    setSelectedItem(item);
+    setViewMode('verification');
+  };
+
+  const handleInspectionComplete = (updatedData: any) => {
+    // Update the item in the list
+    setEwasteItems(prev => prev.map(item => 
+      item._id === selectedItem?._id 
+        ? { ...item, ...updatedData, inspectionStatus: 'Completed' }
+        : item
+    ));
+    
+    // Switch to verification view
+    setViewMode('verification');
+  };
+
+  const handleBackToList = () => {
+    setViewMode('list');
+    setSelectedItem(null);
+  };
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600 mx-auto mb-4"></div>
           <p className="text-gray-600">Loading e-waste items...</p>
@@ -161,273 +159,268 @@ const EwasteInspection: React.FC = () => {
     );
   }
 
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <AlertTriangle className="w-8 h-8 text-red-600" />
+          </div>
+          <h2 className="text-xl font-semibold text-gray-900 mb-2">Error Loading Data</h2>
+          <p className="text-gray-600">{error}</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="mt-4 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // Render inspection form
+  if (viewMode === 'inspect' && selectedItem) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <div className="bg-white shadow-sm border-b border-gray-200 p-4">
+          <button
+            onClick={handleBackToList}
+            className="flex items-center text-gray-600 hover:text-gray-800 mb-2"
+          >
+            <ChevronRight className="w-5 h-5 mr-1 rotate-180" />
+            Back to List
+          </button>
+          <h1 className="text-xl font-semibold text-gray-900">
+            Inspecting: {selectedItem.deviceType}
+          </h1>
+        </div>
+        
+        <DeviceInspection
+          pickupId={selectedItem._id}
+          onInspectionComplete={handleInspectionComplete}
+          existingData={selectedItem.deviceConditionReport}
+        />
+      </div>
+    );
+  }
+
+  // Render verification dashboard
+  if (viewMode === 'verification' && selectedItem) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <div className="bg-white shadow-sm border-b border-gray-200 p-4">
+          <button
+            onClick={handleBackToList}
+            className="flex items-center text-gray-600 hover:text-gray-800 mb-2"
+          >
+            <ChevronRight className="w-5 h-5 mr-1 rotate-180" />
+            Back to List
+          </button>
+          <h1 className="text-xl font-semibold text-gray-900">
+            Verification: {selectedItem.deviceType}
+          </h1>
+        </div>
+        
+        <VerificationDashboard
+          pickupId={selectedItem._id}
+          recyclerView={true}
+        />
+      </div>
+    );
+  }
+
+  // Render main list view
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="bg-white rounded-lg shadow-sm border p-6">
-        <h1 className="text-2xl font-bold text-gray-800">E-waste Inspection</h1>
-        <p className="text-gray-600">Inspect and evaluate electronic devices</p>
-      </div>
-
-      {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
-          {error}
-        </div>
-      )}
-
-      {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div className="bg-white p-4 rounded-lg shadow-sm border">
-          <div className="text-2xl font-bold text-blue-600">{ewasteItems.length}</div>
-          <div className="text-sm text-gray-600">Total Items</div>
-        </div>
-        <div className="bg-white p-4 rounded-lg shadow-sm border">
-          <div className="text-2xl font-bold text-yellow-600">{pendingItems.length}</div>
-          <div className="text-sm text-gray-600">Pending Inspection</div>
-        </div>
-        <div className="bg-white p-4 rounded-lg shadow-sm border">
-          <div className="text-2xl font-bold text-green-600">{completedItems.length}</div>
-          <div className="text-sm text-gray-600">Completed</div>
-        </div>
-        <div className="bg-white p-4 rounded-lg shadow-sm border">
-          <div className="text-2xl font-bold text-purple-600">
-            ₹{completedItems.reduce((sum, item) => sum + item.estimatedValue, 0).toLocaleString()}
+    <div className="min-h-screen bg-gray-50 py-8 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-7xl mx-auto">
+        {/* Header */}
+        <div className="mb-8">
+          <div className="flex items-center mb-4">
+            <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center mr-4">
+              <Eye className="w-6 h-6 text-green-600" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">E-waste Inspection & Verification</h1>
+              <p className="text-gray-600">
+                Comprehensive device inspection with tamper-proof environmental impact tracking
+              </p>
+            </div>
           </div>
-          <div className="text-sm text-gray-600">Total Value</div>
-        </div>
-      </div>
 
-      {/* Pending Inspections */}
-      {pendingItems.length > 0 && (
-        <div className="bg-white rounded-lg shadow-sm border">
-          <div className="p-6 border-b">
-            <h2 className="text-lg font-semibold text-gray-800">
-              Pending Inspections ({pendingItems.length})
-            </h2>
-          </div>
-          <div className="divide-y">
-            {pendingItems.map((item) => (
-              <div key={item._id} className="p-6 hover:bg-gray-50">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="font-medium text-gray-800">{item.deviceType}</h3>
-                    <p className="text-sm text-gray-600">
-                      Pickup ID: {item.pickupId || 'N/A'}
-                    </p>
-                    {item.userDetails && (
-                      <p className="text-sm text-gray-600">
-                        Customer: {item.userDetails.name}
-                      </p>
-                    )}
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(item.inspectionStatus)}`}>
-                      {item.inspectionStatus.toUpperCase()}
-                    </span>
-                    <button
-                      onClick={() => setSelectedItem(item)}
-                      className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
-                    >
-                      Start Inspection
-                    </button>
-                  </div>
+          {/* Stats */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+            <div className="bg-white rounded-lg shadow-sm p-4">
+              <div className="flex items-center">
+                <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center mr-3">
+                  <Eye className="w-4 h-4 text-blue-600" />
                 </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Completed Inspections */}
-      <div className="bg-white rounded-lg shadow-sm border">
-        <div className="p-6 border-b">
-          <h2 className="text-lg font-semibold text-gray-800">
-            Completed Inspections ({completedItems.length})
-          </h2>
-        </div>
-        {completedItems.length > 0 ? (
-          <div className="divide-y">
-            {completedItems.map((item) => (
-              <div key={item._id} className="p-6">
-                <div className="flex items-center justify-between">
-                  <div className="flex-1">
-                    <h3 className="font-medium text-gray-800">{item.deviceType}</h3>
-                    <div className="mt-2 flex items-center space-x-4 text-sm">
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${getConditionColor(item.condition)}`}>
-                        {item.condition}
-                      </span>
-                      <span className="text-gray-600">
-                        Value: ₹{item.estimatedValue.toLocaleString()}
-                      </span>
-                      <span className="text-gray-600">
-                        {item.inspectionDate && new Date(item.inspectionDate).toLocaleDateString()}
-                      </span>
-                    </div>
-                    {item.inspectionNotes && (
-                      <p className="mt-2 text-sm text-gray-600">
-                        Notes: {item.inspectionNotes}
-                      </p>
-                    )}
-                  </div>
-                  <button
-                    onClick={() => setSelectedItem(item)}
-                    className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
-                  >
-                    View Details
-                  </button>
+                <div>
+                  <p className="text-2xl font-semibold text-gray-900">{ewasteItems.length}</p>
+                  <p className="text-sm text-gray-600">Total Items</p>
                 </div>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div className="p-12 text-center">
-            <span className="text-6xl mb-4 block">🔍</span>
-            <h3 className="text-lg font-medium text-gray-800 mb-2">No completed inspections</h3>
-            <p className="text-gray-600">Completed inspections will appear here</p>
-          </div>
-        )}
-      </div>
-
-      {/* Inspection Modal */}
-      {selectedItem && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="p-6 border-b">
-              <div className="flex items-center justify-between">
-                <h3 className="text-lg font-semibold">
-                  {selectedItem.inspectionStatus === 'completed' ? 'Inspection Details' : 'Device Inspection'}
-                </h3>
-                <button
-                  onClick={() => setSelectedItem(null)}
-                  className="text-gray-500 hover:text-gray-700"
-                >
-                  ✕
-                </button>
               </div>
             </div>
             
-            <div className="p-6">
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Device Type</label>
-                  <p className="text-gray-800">{selectedItem.deviceType}</p>
+            <div className="bg-white rounded-lg shadow-sm p-4">
+              <div className="flex items-center">
+                <div className="w-8 h-8 bg-yellow-100 rounded-full flex items-center justify-center mr-3">
+                  <Clock className="w-4 h-4 text-yellow-600" />
                 </div>
-                
                 <div>
-                  <label className="block text-sm font-medium text-gray-700">Pickup ID</label>
-                  <p className="text-gray-800">{selectedItem.pickupId || 'N/A'}</p>
+                  <p className="text-2xl font-semibold text-gray-900">
+                    {ewasteItems.filter(item => (item.inspectionStatus || '').toLowerCase() === 'pending').length}
+                  </p>
+                  <p className="text-sm text-gray-600">Pending</p>
                 </div>
+              </div>
+            </div>
+            
+            <div className="bg-white rounded-lg shadow-sm p-4">
+              <div className="flex items-center">
+                <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center mr-3">
+                  <Eye className="w-4 h-4 text-blue-600" />
+                </div>
+                <div>
+                  <p className="text-2xl font-semibold text-gray-900">
+                    {ewasteItems.filter(item => (item.inspectionStatus || '').toLowerCase() === 'under inspection').length}
+                  </p>
+                  <p className="text-sm text-gray-600">In Progress</p>
+                </div>
+              </div>
+            </div>
+            
+            <div className="bg-white rounded-lg shadow-sm p-4">
+              <div className="flex items-center">
+                <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center mr-3">
+                  <CheckCircle className="w-4 h-4 text-green-600" />
+                </div>
+                <div>
+                  <p className="text-2xl font-semibold text-gray-900">
+                    {ewasteItems.filter(item => (item.inspectionStatus || '').toLowerCase() === 'completed').length}
+                  </p>
+                  <p className="text-sm text-gray-600">Completed</p>
+                </div>
+              </div>
+            </div>
+          </div>
 
-                {selectedItem.userDetails && (
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">Customer</label>
-                    <p className="text-gray-800">
-                      {selectedItem.userDetails.name} • {selectedItem.userDetails.phone}
-                    </p>
-                  </div>
-                )}
-
-                {selectedItem.inspectionStatus === 'pending' ? (
-                  <div className="space-y-4 pt-4 border-t">
-                    <h4 className="font-medium text-gray-800">Inspection Details</h4>
-                    
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Device Condition
-                      </label>
-                      <select
-                        aria-label="Device Condition"
-                        value={inspectionData.condition}
-                        onChange={(e) => setInspectionData(prev => ({ ...prev, condition: e.target.value }))}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
-                      >
-                        <option value="">Select condition</option>
-                        <option value="excellent">Excellent</option>
-                        <option value="good">Good</option>
-                        <option value="fair">Fair</option>
-                        <option value="poor">Poor</option>
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Estimated Value (₹)
-                      </label>
-                      <input
-                        type="number"
-                        value={inspectionData.estimatedValue}
-                        onChange={(e) => setInspectionData(prev => ({ ...prev, estimatedValue: e.target.value }))}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
-                        placeholder="Enter estimated value"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Inspection Notes
-                      </label>
-                      <textarea
-                        value={inspectionData.notes}
-                        onChange={(e) => setInspectionData(prev => ({ ...prev, notes: e.target.value }))}
-                        rows={4}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
-                        placeholder="Enter detailed inspection notes..."
-                      />
-                    </div>
-
-                    <div className="flex space-x-3 pt-4">
-                      <button
-                        onClick={handleInspectionSubmit}
-                        disabled={isInspecting || !inspectionData.condition || !inspectionData.estimatedValue}
-                        className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50"
-                      >
-                        {isInspecting ? 'Submitting...' : 'Complete Inspection'}
-                      </button>
-                      <button
-                        onClick={() => setSelectedItem(null)}
-                        className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
-                      >
-                        Cancel
-                      </button>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="space-y-4 pt-4 border-t">
-                    <h4 className="font-medium text-gray-800">Inspection Results</h4>
-                    
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700">Condition</label>
-                        <span className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${getConditionColor(selectedItem.condition)}`}>
-                          {selectedItem.condition}
-                        </span>
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700">Estimated Value</label>
-                        <p className="text-gray-800 font-semibold">₹{selectedItem.estimatedValue.toLocaleString()}</p>
-                      </div>
-                    </div>
-
-                    {selectedItem.inspectionNotes && (
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700">Notes</label>
-                        <p className="text-gray-800">{selectedItem.inspectionNotes}</p>
-                      </div>
-                    )}
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700">Inspection Date</label>
-                      <p className="text-gray-800">
-                        {selectedItem.inspectionDate && new Date(selectedItem.inspectionDate).toLocaleString()}
-                      </p>
-                    </div>
-                  </div>
-                )}
+          {/* Search and Filter */}
+          <div className="bg-white rounded-lg shadow-sm p-4 mb-6">
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between space-y-4 md:space-y-0 md:space-x-4">
+              <div className="flex-1 relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <input
+                  type="text"
+                  placeholder="Search by device type, brand, or model..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10 pr-4 py-2 w-full border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                />
+              </div>
+              
+              <div className="flex items-center space-x-4">
+                <div className="flex items-center">
+                  <Filter className="w-4 h-4 text-gray-400 mr-2" />
+                  <select
+                    value={statusFilter}
+                    onChange={(e) => setStatusFilter(e.target.value)}
+                    className="border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-500"
+                    title="Filter by status"
+                    aria-label="Filter by status"
+                  >
+                    <option value="all">All Status</option>
+                    <option value="pending">Pending</option>
+                    <option value="under inspection">Under Inspection</option>
+                    <option value="completed">Completed</option>
+                  </select>
+                </div>
               </div>
             </div>
           </div>
         </div>
-      )}
+
+        {/* Items List */}
+        {filteredItems.length === 0 ? (
+          <div className="bg-white rounded-lg shadow-sm p-8 text-center">
+            <Eye className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+            <h3 className="text-lg font-medium text-gray-900 mb-2">No Items Found</h3>
+            <p className="text-gray-600">
+              {ewasteItems.length === 0 
+                ? 'No e-waste items assigned for inspection yet.'
+                : 'No items match your current search and filter criteria.'
+              }
+            </p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+            {filteredItems.map((item) => (
+              <div key={item._id} className="bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow">
+                <div className="p-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center">
+                      {getStatusIcon(item.inspectionStatus)}
+                      <span className={`ml-2 px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(item.inspectionStatus)}`}>
+                        {item.inspectionStatus || 'Pending'}
+                      </span>
+                    </div>
+                    {(item.inspectionStatus || '').toLowerCase() === 'completed' && (
+                      <div title="Verified">
+                        <Shield className="w-5 h-5 text-green-600" />
+                      </div>
+                    )}
+                  </div>
+                  
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">{item.deviceType || 'Unknown Device'}</h3>
+                  
+                  {(item.brand || item.model) && (
+                    <p className="text-sm text-gray-600 mb-2">
+                      {item.brand} {item.model}
+                    </p>
+                  )}
+                  
+                  {item.pickupAddress && (
+                    <p className="text-sm text-gray-600 mb-2">📍 {item.pickupAddress}</p>
+                  )}
+                  
+                  {item.scheduledDate && (
+                    <div className="flex items-center text-sm text-gray-600 mb-4">
+                      <Calendar className="w-4 h-4 mr-1" />
+                      {new Date(item.scheduledDate).toLocaleDateString()}
+                    </div>
+                  )}
+                  
+                  {item.estimatedValue > 0 && (
+                    <p className="text-lg font-semibold text-green-600 mb-4">
+                      ₹{item.estimatedValue}
+                    </p>
+                  )}
+                  
+                  <div className="flex space-x-2">
+                    {(item.inspectionStatus || '').toLowerCase() !== 'completed' ? (
+                      <button
+                        onClick={() => handleInspectDevice(item)}
+                        className="flex-1 flex items-center justify-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                      >
+                        <Eye className="w-4 h-4 mr-2" />
+                        {(item.inspectionStatus || '').toLowerCase() === 'under inspection' ? 'Continue Inspection' : 'Start Inspection'}
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => handleViewVerification(item)}
+                        className="flex-1 flex items-center justify-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                      >
+                        <Shield className="w-4 h-4 mr-2" />
+                        View Verification
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 };

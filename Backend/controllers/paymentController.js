@@ -349,10 +349,85 @@ const getPaymentByOrderId = async (req, res) => {
   }
 };
 
+/**
+ * Refund a payment
+ * POST /api/payments/refund/:paymentId
+ */
+const refundPayment = async (req, res) => {
+  try {
+    const { paymentId } = req.params;
+    const { amount, reason = 'Customer request' } = req.body;
+    
+    if (!paymentId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Payment ID is required',
+      });
+    }
+
+    // Find the payment
+    const payment = await Payment.findById(paymentId);
+    
+    if (!payment) {
+      return res.status(404).json({
+        success: false,
+        message: 'Payment not found',
+      });
+    }
+
+    // Check if payment is successful and can be refunded
+    if (payment.status !== 'captured') {
+      return res.status(400).json({
+        success: false,
+        message: 'Only captured payments can be refunded',
+      });
+    }
+
+    // Create refund via Razorpay
+    const refundData = {
+      payment_id: payment.razorpayPaymentId,
+    };
+
+    if (amount) {
+      refundData.amount = parseInt(amount); // Amount in paise
+    }
+
+    const refund = await razorpay.payments.refund(payment.razorpayPaymentId, refundData);
+
+    // Update payment record
+    payment.status = 'refunded';
+    payment.refund = {
+      refundId: refund.id,
+      amount: refund.amount,
+      reason: reason,
+      processedAt: new Date(),
+    };
+    
+    await payment.save();
+
+    res.json({
+      success: true,
+      message: 'Refund processed successfully',
+      data: {
+        payment,
+        refund,
+      },
+    });
+    
+  } catch (error) {
+    console.error('Refund payment error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to process refund',
+    });
+  }
+};
+
 module.exports = {
   createOrder,
   verifyPayment,
   handleWebhook,
   getPaymentHistory,
   getPaymentByOrderId,
+  refundPayment,
 };
