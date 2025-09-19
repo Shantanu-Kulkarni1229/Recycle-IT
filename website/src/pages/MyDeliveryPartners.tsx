@@ -4,6 +4,7 @@ import { deliveryPartnerAPI, DeliveryPartner } from '../services/deliveryPartner
 const MyDeliveryPartners: React.FC = () => {
   const [partners, setPartners] = useState<DeliveryPartner[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [showAddForm, setShowAddForm] = useState(false);
   const [stats, setStats] = useState({
     totalPartners: 0,
@@ -19,20 +20,28 @@ const MyDeliveryPartners: React.FC = () => {
   const fetchMyPartners = async () => {
     try {
       setLoading(true);
+      setError(null);
       const response = await deliveryPartnerAPI.getDeliveryPartners();
-      setPartners(response.data.deliveryPartners);
       
-      // Calculate stats
-      const totalPartners = response.data.deliveryPartners.length;
-      const activePartners = response.data.deliveryPartners.filter(p => p.isAvailable).length;
-      const totalDeliveries = response.data.deliveryPartners.reduce((sum, p) => sum + p.performanceMetrics.totalDeliveries, 0);
+      // Safe check for response data
+      const deliveryPartners = response.data?.deliveryPartners || [];
+      setPartners(deliveryPartners);
+      
+      // Calculate stats safely
+      const totalPartners = deliveryPartners.length;
+      const activePartners = deliveryPartners.filter(p => p.isAvailable).length;
+      const totalDeliveries = deliveryPartners.reduce((sum, p) => sum + (p.performanceMetrics?.totalDeliveries || 0), 0);
       const averageRating = totalPartners > 0 
-        ? response.data.deliveryPartners.reduce((sum, p) => sum + p.performanceMetrics.averageRating, 0) / totalPartners 
+        ? deliveryPartners.reduce((sum, p) => sum + (p.performanceMetrics?.averageRating || 0), 0) / totalPartners 
         : 0;
       
       setStats({ totalPartners, activePartners, totalDeliveries, averageRating });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error fetching partners:', error);
+      setError(error.message || 'Failed to load delivery partners');
+      // Set empty array on error to prevent undefined access
+      setPartners([]);
+      setStats({ totalPartners: 0, activePartners: 0, totalDeliveries: 0, averageRating: 0 });
     } finally {
       setLoading(false);
     }
@@ -91,6 +100,28 @@ const MyDeliveryPartners: React.FC = () => {
     return (
       <div className="flex justify-center items-center h-64">
         <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-green-500"></div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="max-w-7xl mx-auto p-6">
+        <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
+          <div className="text-red-600 mb-4">
+            <svg className="mx-auto h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+          <h3 className="text-lg font-medium text-red-900 mb-2">Failed to Load Delivery Partners</h3>
+          <p className="text-red-700 mb-4">{error}</p>
+          <button
+            onClick={fetchMyPartners}
+            className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700"
+          >
+            Try Again
+          </button>
+        </div>
       </div>
     );
   }
@@ -309,7 +340,7 @@ const MyDeliveryPartners: React.FC = () => {
                 <button
                   onClick={() => {
                     setShowAddForm(false);
-                    window.location.href = '/delivery-partners';
+                    window.location.href = '/add-delivery-partner';
                   }}
                   className="w-full flex items-center p-4 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors"
                 >

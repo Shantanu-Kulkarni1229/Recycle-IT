@@ -14,6 +14,8 @@ import PickupManagement from './pages/PickupManagement';
 import EwasteInspection from './pages/EwasteInspection';
 import DocumentUpload from './pages/DocumentUpload';
 import PaymentManagement from './pages/PaymentManagement';
+import MyDeliveryPartners from './pages/MyDeliveryPartners';
+import AddDeliveryPartner from './pages/AddDeliveryPartner';
 
 // Utils
 import { isAuthenticated } from './utils/helpers';
@@ -120,6 +122,8 @@ function App() {
                 <Route path="/ewaste-inspection" element={<EwasteInspection />} />
                 <Route path="/document-upload" element={<DocumentUpload />} />
                 <Route path="/payment-management" element={<PaymentManagement />} />
+                <Route path="/my-delivery-partners" element={<MyDeliveryPartners />} />
+                <Route path="/add-delivery-partner" element={<AddDeliveryPartner />} />
                 <Route path="*" element={<Navigate to="/dashboard" replace />} />
               </Routes>
             </Layout>

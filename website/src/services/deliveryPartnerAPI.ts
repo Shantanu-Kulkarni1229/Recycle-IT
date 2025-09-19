@@ -116,7 +116,7 @@ export interface DeliveryPartnerResponse {
 
 class DeliveryPartnerAPI {
   private getAuthHeaders() {
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem('recyclerToken');
     return {
       'Content-Type': 'application/json',
       'Authorization': token ? `Bearer ${token}` : '',
@@ -124,14 +124,21 @@ class DeliveryPartnerAPI {
   }
 
   async createDeliveryPartner(partnerData: CreateDeliveryPartnerRequest): Promise<DeliveryPartnerResponse> {
+    console.log('Creating delivery partner with data:', partnerData);
+    
     const response = await fetch(`${API_BASE_URL}/delivery-partners`, {
       method: 'POST',
       headers: this.getAuthHeaders(),
       body: JSON.stringify(partnerData),
     });
 
+    console.log('Response status:', response.status);
+    console.log('Response headers:', response.headers);
+
     if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+      const errorText = await response.text();
+      console.log('Error response body:', errorText);
+      throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
     }
 
     return await response.json();
@@ -166,7 +173,8 @@ class DeliveryPartnerAPI {
     });
 
     if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+      const errorText = await response.text();
+      throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
     }
 
     return await response.json();

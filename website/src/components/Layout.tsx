@@ -24,6 +24,12 @@ const Layout: React.FC<LayoutProps> = ({ onLogout, children }) => {
       description: 'Manage E-waste Pickups'
     },
     {
+      name: 'Delivery Partners',
+      path: '/my-delivery-partners',
+      icon: '👥',
+      description: 'Manage Delivery Team'
+    },
+    {
       name: 'E-waste Inspection',
       path: '/ewaste-inspection',
       icon: '🔍',

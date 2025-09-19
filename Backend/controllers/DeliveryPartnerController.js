@@ -9,6 +9,9 @@ const isValidObjectId = (id) => {
 // 1. Create a new delivery partner
 exports.createDeliveryPartner = async (req, res) => {
   try {
+    console.log('Received request body:', JSON.stringify(req.body, null, 2));
+    console.log('Authenticated recycler:', req.recycler ? req.recycler._id : 'No recycler');
+    
     const {
       name,
       email,
@@ -21,10 +24,13 @@ exports.createDeliveryPartner = async (req, res) => {
       notes
     } = req.body;
 
-    // Get recycler ID from authenticated user (assuming auth middleware sets req.user)
-    const recyclerId = req.user?.recyclerId || req.body.recyclerId;
+    // Get recycler ID from authenticated recycler (auth middleware sets req.recycler)
+    const recyclerId = req.recycler?._id || req.body.recyclerId;
+    
+    console.log('Using recycler ID:', recyclerId);
     
     if (!recyclerId || !isValidObjectId(recyclerId)) {
+      console.log('Invalid recycler ID validation failed');
       return res.status(400).json({
         success: false,
         message: "Valid recycler ID is required"
@@ -56,7 +62,7 @@ exports.createDeliveryPartner = async (req, res) => {
     }
 
     // Create new delivery partner
-    const deliveryPartner = new DeliveryPartner({
+    const deliveryPartnerData = {
       name: name.trim(),
       email: email.toLowerCase().trim(),
       phoneNumber: phoneNumber.replace(/\D/g, ''), // Remove non-digits
@@ -67,7 +73,11 @@ exports.createDeliveryPartner = async (req, res) => {
       workingDays: workingDays || ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"],
       recyclerId,
       notes: notes?.trim() || ""
-    });
+    };
+    
+    console.log('Creating delivery partner with data:', JSON.stringify(deliveryPartnerData, null, 2));
+    
+    const deliveryPartner = new DeliveryPartner(deliveryPartnerData);
 
     await deliveryPartner.save();
 
@@ -100,7 +110,7 @@ exports.createDeliveryPartner = async (req, res) => {
 // 2. Get all delivery partners for a recycler
 exports.getDeliveryPartners = async (req, res) => {
   try {
-    const recyclerId = req.user?.recyclerId || req.params.recyclerId;
+    const recyclerId = req.recycler?._id || req.params.recyclerId;
     
     if (!recyclerId || !isValidObjectId(recyclerId)) {
       return res.status(400).json({
@@ -189,7 +199,7 @@ exports.getDeliveryPartners = async (req, res) => {
 exports.getDeliveryPartnerById = async (req, res) => {
   try {
     const { id } = req.params;
-    const recyclerId = req.user?.recyclerId || req.query.recyclerId;
+    const recyclerId = req.recycler?._id || req.query.recyclerId;
     
     if (!isValidObjectId(id)) {
       return res.status(400).json({
@@ -239,7 +249,7 @@ exports.getDeliveryPartnerById = async (req, res) => {
 exports.updateDeliveryPartner = async (req, res) => {
   try {
     const { id } = req.params;
-    const recyclerId = req.user?.recyclerId || req.body.recyclerId;
+    const recyclerId = req.recycler?._id || req.body.recyclerId;
     const updateData = req.body;
     
     if (!isValidObjectId(id)) {
@@ -331,7 +341,7 @@ exports.updateDeliveryPartner = async (req, res) => {
 exports.deleteDeliveryPartner = async (req, res) => {
   try {
     const { id } = req.params;
-    const recyclerId = req.user?.recyclerId || req.query.recyclerId;
+    const recyclerId = req.recycler?._id || req.query.recyclerId;
     
     if (!isValidObjectId(id)) {
       return res.status(400).json({
@@ -403,12 +413,13 @@ exports.getAvailablePartners = async (req, res) => {
       const currentDay = now.toLocaleDateString('en-US', { weekday: 'long' });
       const currentTime = now.toTimeString().slice(0, 5);
       
-      // Check if partner is working today
-      const todayWorkingHours = partner.workingHours?.find(wh => wh.day === currentDay);
-      const isWorkingToday = todayWorkingHours?.isWorking;
-      const isInWorkingHours = isWorkingToday && todayWorkingHours?.startTime && todayWorkingHours?.endTime &&
-        currentTime >= todayWorkingHours.startTime && 
-        currentTime <= todayWorkingHours.endTime;
+      // Check if partner is working today using workingDays array and workingHours object
+      const isWorkingToday = partner.workingDays?.includes(currentDay);
+      const isInWorkingHours = isWorkingToday && 
+        partner.workingHours?.start && 
+        partner.workingHours?.end &&
+        currentTime >= partner.workingHours.start && 
+        currentTime <= partner.workingHours.end;
 
       return {
         ...partner,
@@ -448,7 +459,7 @@ exports.updatePartnerAvailability = async (req, res) => {
   try {
     const { id } = req.params;
     const { isAvailable } = req.body;
-    const recyclerId = req.user?.recyclerId || req.body.recyclerId;
+    const recyclerId = req.recycler?._id || req.body.recyclerId;
     
     if (!isValidObjectId(id)) {
       return res.status(400).json({

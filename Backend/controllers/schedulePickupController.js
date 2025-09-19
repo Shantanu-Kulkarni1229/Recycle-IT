@@ -1,6 +1,7 @@
 const mongoose = require("mongoose");
 const SchedulePickup = require("../models/SchedulePickup");
 const { cloudinary } = require("../config/cloudinary");
+const { sendEmail } = require("../utils/emailService");
 
 // Validation function for ObjectId
 const isValidObjectId = (id) => {
@@ -560,8 +561,6 @@ async function sendPickupStatusNotification(pickup, newStatus) {
     return;
   }
 
-  const { sendEmail } = require("../utils/emailService");
-  
   let subject = '';
   let emailBody = '';
   
