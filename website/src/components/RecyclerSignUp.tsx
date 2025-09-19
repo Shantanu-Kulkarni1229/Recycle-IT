@@ -28,6 +28,10 @@ const RecyclerSignUp: React.FC<RecyclerSignUpProps> = ({ onSignUp, onBackToLogin
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [currentStep, setCurrentStep] = useState(1);
+  const [showOTPVerification, setShowOTPVerification] = useState(false);
+  const [otp, setOtp] = useState(['', '', '', '', '', '']);
+  const [otpError, setOtpError] = useState('');
+  const [isVerifyingOTP, setIsVerifyingOTP] = useState(false);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({
@@ -42,6 +46,20 @@ const RecyclerSignUp: React.FC<RecyclerSignUpProps> = ({ onSignUp, onBackToLogin
     
     if (!ownerName || !email || !phoneNumber || !password || !confirmPassword) {
       setError('Please fill in all required fields');
+      return false;
+    }
+    
+    // Email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      setError('Please enter a valid email address');
+      return false;
+    }
+    
+    // Phone number validation (10 digits)
+    const phoneRegex = /^[0-9]{10}$/;
+    if (!phoneRegex.test(phoneNumber)) {
+      setError('Please enter a valid 10-digit phone number');
       return false;
     }
     
@@ -66,6 +84,13 @@ const RecyclerSignUp: React.FC<RecyclerSignUpProps> = ({ onSignUp, onBackToLogin
       return false;
     }
     
+    // Pincode validation (6 digits)
+    const pincodeRegex = /^[0-9]{6}$/;
+    if (!pincodeRegex.test(pincode)) {
+      setError('Please enter a valid 6-digit pincode');
+      return false;
+    }
+    
     return true;
   };
 
@@ -81,10 +106,85 @@ const RecyclerSignUp: React.FC<RecyclerSignUpProps> = ({ onSignUp, onBackToLogin
     setCurrentStep(1);
   };
 
+  const handleOTPChange = (index: number, value: string) => {
+    if (value.length > 1) return; // Only allow single digit
+    
+    const newOtp = [...otp];
+    newOtp[index] = value;
+    setOtp(newOtp);
+    
+    // Auto-focus next input
+    if (value && index < 5) {
+      const nextInput = document.getElementById(`otp-${index + 1}`);
+      nextInput?.focus();
+    }
+    
+    if (otpError) setOtpError('');
+  };
+
+  const handleOTPKeyDown = (index: number, e: React.KeyboardEvent) => {
+    if (e.key === 'Backspace' && !otp[index] && index > 0) {
+      const prevInput = document.getElementById(`otp-${index - 1}`);
+      prevInput?.focus();
+    }
+  };
+
+  const handleOTPVerification = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    const otpString = otp.join('');
+    if (otpString.length !== 6) {
+      setOtpError('Please enter the complete 6-digit OTP');
+      return;
+    }
+
+    setIsVerifyingOTP(true);
+    setOtpError('');
+
+    try {
+      const response = await authAPI.verifyOTP(formData.email, otpString);
+      
+      if (response.success) {
+        localStorage.setItem('recyclerToken', response.token);
+        localStorage.setItem('recyclerData', JSON.stringify(response.recycler));
+        onSignUp(); // Now proceed to login
+      } else {
+        setOtpError(response.message || 'Invalid OTP. Please try again.');
+      }
+    } catch (error: any) {
+      console.error('OTP verification error:', error);
+      setOtpError(error.response?.data?.message || 'Verification failed. Please try again.');
+    } finally {
+      setIsVerifyingOTP(false);
+    }
+  };
+
+  const handleResendOTP = async () => {
+    setLoading(true);
+    setOtpError('');
+
+    try {
+      const response = await authAPI.resendOTP(formData.email);
+      
+      if (response.success) {
+        setOtpError(''); // Clear any errors
+        // You could show a success message here
+      } else {
+        setOtpError(response.message || 'Failed to resend OTP');
+      }
+    } catch (error: any) {
+      console.error('Resend OTP error:', error);
+      setOtpError(error.response?.data?.message || 'Failed to resend OTP');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!validateStep2()) {
+    // Validate all steps before submitting
+    if (!validateStep1() || !validateStep2()) {
       return;
     }
 
@@ -92,18 +192,30 @@ const RecyclerSignUp: React.FC<RecyclerSignUpProps> = ({ onSignUp, onBackToLogin
     setError('');
 
     try {
+      console.log('Sending registration data:', formData);
       const response = await authAPI.register(formData);
+      console.log('Registration response:', response);
       
       if (response.success) {
-        localStorage.setItem('recyclerToken', response.token);
-        localStorage.setItem('recyclerData', JSON.stringify(response.recycler));
-        onSignUp();
+        // Don't auto-login, show OTP verification instead
+        setShowOTPVerification(true);
+        setError(''); // Clear any errors
       } else {
         setError(response.message || 'Registration failed');
       }
     } catch (error: any) {
       console.error('Registration error:', error);
-      setError(error.response?.data?.message || 'Network error. Please try again.');
+      console.error('Error response:', error.response?.data);
+      
+      if (error.response?.data?.errors) {
+        // Handle validation errors from express-validator
+        const validationErrors = error.response.data.errors;
+        const errorMessages = validationErrors.map((err: any) => err.msg).join(', ');
+        setError(errorMessages);
+      } else {
+        const errorMessage = error.response?.data?.message || 'Network error. Please try again.';
+        setError(errorMessage);
+      }
     } finally {
       setLoading(false);
     }
@@ -405,6 +517,72 @@ const RecyclerSignUp: React.FC<RecyclerSignUpProps> = ({ onSignUp, onBackToLogin
     </div>
   );
 
+  const renderOTPVerification = () => (
+    <div className="space-y-6">
+      <div className="text-center mb-6">
+        <h2 className="text-2xl font-bold text-gray-900">Verify Your Email</h2>
+        <p className="text-gray-600 mt-2">
+          We've sent a 6-digit verification code to<br />
+          <span className="font-medium text-gray-900">{formData.email}</span>
+        </p>
+      </div>
+
+      {/* OTP Input */}
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-3 text-center">
+          Enter Verification Code
+        </label>
+        <div className="flex justify-center space-x-3">
+          {[0, 1, 2, 3, 4, 5].map((index) => (
+            <input
+              key={index}
+              id={`otp-${index}`}
+              type="text"
+              maxLength={1}
+              value={otp[index]}
+              onChange={(e) => handleOTPChange(index, e.target.value)}
+              onKeyDown={(e) => handleOTPKeyDown(index, e)}
+              className="w-12 h-12 text-center text-lg font-semibold border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+              disabled={isVerifyingOTP}
+            />
+          ))}
+        </div>
+      </div>
+
+      {/* OTP Error */}
+      {otpError && (
+        <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
+          <p className="text-red-600 text-sm text-center">{otpError}</p>
+        </div>
+      )}
+
+      {/* Verify Button */}
+      <button
+        type="submit"
+        onClick={handleOTPVerification}
+        disabled={isVerifyingOTP}
+        className="w-full py-3 px-4 border border-transparent text-base font-medium rounded-lg text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50"
+      >
+        {isVerifyingOTP ? 'Verifying...' : 'Verify Email'}
+      </button>
+
+      {/* Resend OTP */}
+      <div className="text-center">
+        <p className="text-sm text-gray-600">
+          Didn't receive the code?{' '}
+          <button
+            type="button"
+            onClick={handleResendOTP}
+            disabled={loading}
+            className="text-green-600 hover:text-green-700 font-medium"
+          >
+            Resend Code
+          </button>
+        </p>
+      </div>
+    </div>
+  );
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 via-blue-50 to-purple-50 flex items-center justify-center p-4">
       <div className="max-w-md w-full">
@@ -421,25 +599,29 @@ const RecyclerSignUp: React.FC<RecyclerSignUpProps> = ({ onSignUp, onBackToLogin
 
         {/* Form */}
         <div className="bg-white rounded-2xl shadow-xl p-8">
-          {error && (
+          {error && !showOTPVerification && (
             <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
               <p className="text-red-600 text-sm">{error}</p>
             </div>
           )}
 
-          <form onSubmit={handleSubmit}>
-            {currentStep === 1 ? renderStep1() : renderStep2()}
-          </form>
+          {showOTPVerification ? (
+            renderOTPVerification()
+          ) : (
+            <form onSubmit={handleSubmit}>
+              {currentStep === 1 ? renderStep1() : renderStep2()}
+            </form>
+          )}
 
           {/* Back to Login */}
           <div className="mt-6 text-center">
             <button
-              onClick={onBackToLogin}
+              onClick={showOTPVerification ? () => setShowOTPVerification(false) : onBackToLogin}
               className="inline-flex items-center text-sm text-gray-600 hover:text-green-600 transition-colors"
-              disabled={loading}
+              disabled={loading || isVerifyingOTP}
             >
               <ArrowLeft className="mr-1 h-4 w-4" />
-              Back to Login
+              {showOTPVerification ? 'Back to Registration' : 'Back to Login'}
             </button>
           </div>
         </div>
