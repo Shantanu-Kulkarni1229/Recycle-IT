@@ -18,7 +18,7 @@ export default function Index() {
         await AsyncStorage.clear();
         
         // Always go to login screen
-        router.replace("/auth/login");
+        router.replace("/(tabs)/home");
         
       } catch (err) {
         console.error("Error checking login:", err);

@@ -295,7 +295,7 @@ export default function Home() {
     outputRange: [
       'rgba(16, 185, 129, 1)', // Original green
       'rgba(59, 130, 246, 0.8)', // Mid-transition blue
-      'rgba(139, 92, 246, 1)' // Final purple
+      'rgba(139, 92, 246, 1)' // Final blue
     ],
   });
 
@@ -318,18 +318,11 @@ export default function Home() {
     });
 
     return (
-      <View style={{
-        height: 8,
-        backgroundColor: '#f1f5f9',
-        borderRadius: 4,
-        overflow: 'hidden',
-        marginTop: 6,
-      }}>
+      <View className="h-2 bg-slate-100 rounded-1 overflow-hidden mt-1.5">
         <Animated.View 
+          className="h-full rounded-1"
           style={{
-            height: '100%',
             backgroundColor: color,
-            borderRadius: 4,
             width: widthAnim,
           }}
         />
@@ -338,11 +331,11 @@ export default function Home() {
   };
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: '#ecfdf5' }}>
+    <SafeAreaView className="flex-1 bg-green-50">
       <StatusBar barStyle="light-content" backgroundColor="#059669" />
       
       {/* Animated Background with smoother gradient waves */}
-      <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}>
+      <View className="absolute inset-0">
         <Animated.View
           style={{
             transform: [{ translateY: waveTranslateY }],
@@ -354,22 +347,18 @@ export default function Home() {
             locations={[0, 0.3, 0.7, 1]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
+            className="rounded-b-[32px]"
             style={{
               height: screenHeight * 0.55,
               width: screenWidth,
-              borderBottomLeftRadius: 32,
-              borderBottomRightRadius: 32,
             }}
           />
         </Animated.View>
         
         {/* Smoother floating eco elements */}
         <Animated.View
+          className="absolute top-[100px] right-12 opacity-15"
           style={{
-            position: 'absolute',
-            top: 100,
-            right: 48,
-            opacity: 0.15,
             transform: [{ rotate: spin }, { scale: 1.2 }],
           }}
         >
@@ -377,11 +366,8 @@ export default function Home() {
         </Animated.View>
         
         <Animated.View
+          className="absolute top-[180px] left-10 opacity-20"
           style={{
-            position: 'absolute',
-            top: 180,
-            left: 40,
-            opacity: 0.2,
             transform: [{ rotate: spin }],
           }}
         >
@@ -389,11 +375,8 @@ export default function Home() {
         </Animated.View>
         
         <Animated.View
+          className="absolute top-[140px] right-[100px] opacity-25"
           style={{
-            position: 'absolute',
-            top: 140,
-            right: 100,
-            opacity: 0.25,
             transform: [{ rotate: spin }],
           }}
         >
@@ -402,7 +385,7 @@ export default function Home() {
       </View>
 
       <ScrollView 
-        style={{ flex: 1 }}
+        className="flex-1"
         contentContainerStyle={{ paddingBottom: 32 }}
         showsVerticalScrollIndicator={false}
         bounces={true}
@@ -411,31 +394,18 @@ export default function Home() {
       >
         {/* Header with proper spacing */}
         <Animated.View
+        className="pt-5 px-6 pb-6"
         style={{
-          paddingTop: 20,
-          paddingHorizontal: 24,
-          paddingBottom: 24,
           opacity: fadeAnim,
           transform: [{ translateY: slideAnimNative }],
         }}
         >
-          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-            <View style={{ flex: 1, paddingRight: 16 , paddingTop: 10}}>
-              <Text style={{ 
-                color: '#fff', 
-                fontSize: 36, 
-                fontWeight: '800',
-                marginBottom: 4,
-                letterSpacing: -0.5,
-              }}>
+          <View className="flex-row items-center justify-between">
+            <View className="flex-1 pr-4 pt-[10px]">
+              <Text className="text-white text-4xl font-black mb-1 tracking-tight">
                 Recycle IT
               </Text>
-              <Text style={{ 
-                color: '#a7f3d0', 
-                fontSize: 16,
-                lineHeight: 24,
-                fontWeight: '500',
-              }}>
+              <Text className="text-green-200 text-base leading-6 font-medium">
                 Responsible e-waste management for a sustainable future
               </Text>
             </View>
@@ -443,30 +413,13 @@ export default function Home() {
             {/* Notification Badge with smooth animation */}
             <TouchableOpacity 
               activeOpacity={0.8}
-              style={{ position: 'relative' }}
+              className="relative"
             >
-              <View style={{
-                backgroundColor: 'rgba(255, 255, 255, 0.2)',
-                padding: 14,
-                borderRadius: 20,
-                backdropFilter: 'blur(10px)',
-              }}>
+              <View className="bg-white/20 p-[14px] rounded-[20px] backdrop-blur-sm">
                 <Ionicons name="notifications" size={26} color="#fff" />
               </View>
-              <View style={{
-                position: 'absolute',
-                top: -2,
-                right: -2,
-                backgroundColor: '#fbbf24',
-                width: 22,
-                height: 22,
-                borderRadius: 11,
-                alignItems: 'center',
-                justifyContent: 'center',
-                borderWidth: 2,
-                borderColor: '#fff',
-              }}>
-                <Text style={{ fontSize: 12, fontWeight: '700', color: '#0f172a' }}>2</Text>
+              <View className="absolute -top-0.5 -right-0.5 bg-amber-400 w-[22px] h-[22px] rounded-[11px] items-center justify-center border-2 border-white">
+                <Text className="text-xs font-bold text-slate-900">2</Text>
               </View>
             </TouchableOpacity>
           </View>
@@ -474,59 +427,30 @@ export default function Home() {
 
         {/* Hero Section with enhanced truck animation */}
         <Animated.View
+          className="px-6 mb-6"
           style={{
-            paddingHorizontal: 24,
-            marginBottom: 24,
             opacity: fadeAnim,
             transform: [{ scale: scaleAnim }],
           }}
         >
-          <View style={{
-            backgroundColor: '#fff',
-            borderRadius: 28,
-            padding: 28,
-            shadowColor: '#047857',
-            shadowOffset: { width: 0, height: 8 },
-            shadowOpacity: 0.15,
-            shadowRadius: 24,
-            elevation: 12,
-          }}>
-            <View style={{ alignItems: 'center', marginBottom: 20 }}>
-              <View style={{
-                backgroundColor: '#dcfce7',
-                padding: 20,
-                borderRadius: 24,
-                marginBottom: 20,
-              }}>
+          <View className="bg-white rounded-[28px] p-7 shadow-lg shadow-green-800/15 elevation-12">
+            <View className="items-center mb-5">
+              <View className="bg-green-100 p-5 rounded-6 mb-5">
                 <MaterialCommunityIcons name="desktop-tower" size={48} color="#059669" />
               </View>
               
-              <Text style={{
-                color: '#1e293b',
-                fontSize: 28,
-                fontWeight: '800',
-                textAlign: 'center',
-                marginBottom: 12,
-                letterSpacing: -0.5,
-              }}>
+              <Text className="text-slate-800 text-[28px] font-black text-center mb-3 tracking-tight">
                 Schedule E-Waste Pickup
               </Text>
               
-              <Text style={{
-                color: '#64748b',
-                textAlign: 'center',
-                fontSize: 17,
-                lineHeight: 26,
-                marginBottom: 28,
-                paddingHorizontal: 8,
-              }}>
+              <Text className="text-slate-500 text-center text-[17px] leading-[26px] mb-7 px-2">
                 Responsibly recycle your electronic waste with our certified partners. 
                 We ensure data security and environmental compliance.
               </Text>
             </View>
 
             {/* Enhanced Custom Truck Animation Button */}
-            <View style={{ position: 'relative', overflow: 'hidden', borderRadius: 20 }}>
+            <View className="relative overflow-hidden rounded-[32px]">
               <Animated.View
                 style={{
                   transform: [{ scale: buttonScaleAnim }],
@@ -536,39 +460,25 @@ export default function Home() {
                   onPress={animateTruckAndNavigate}
                   activeOpacity={0.95}
                   disabled={isAnimatingTruck}
-                  style={{ position: 'relative', overflow: 'hidden', borderRadius: 20 }}
+                  className="relative overflow-hidden rounded-[32px]"
                 >
                   {/* Dynamic Button Background with enhanced styling */}
                   <Animated.View
+                    className="py-5 px-8 rounded-[32px] relative overflow-hidden min-h-[64px]"
                     style={{
                       backgroundColor: buttonBackgroundColor,
-                      paddingVertical: 20,
-                      paddingHorizontal: 32,
-                      borderRadius: 20,
                       shadowColor: '#047857',
                       shadowOffset: { width: 0, height: 8 },
                       shadowOpacity: buttonShadowOpacity,
                       shadowRadius: 16,
                       elevation: 8,
-                      position: 'relative',
-                      overflow: 'hidden',
-                      minHeight: 64, // Ensure consistent height
                     }}
                   >
                     {/* Animated Text with better positioning */}
                     <Animated.Text 
+                      className="text-white text-center text-lg font-bold tracking-wider absolute left-0 right-0 top-1/2 mt-1.5"
                       style={{
-                        color: '#fff',
-                        textAlign: 'center',
-                        fontSize: 18,
-                        fontWeight: '700',
-                        letterSpacing: 0.5,
                         opacity: textOpacityAnim,
-                        position: 'absolute',
-                        left: 0,
-                        right: 0,
-                        top: '50%',
-                        marginTop: 6, // Half of text height for perfect centering
                       }}
                     >
                       Schedule Pickup
@@ -576,26 +486,19 @@ export default function Home() {
 
                     {/* Enhanced Truck Animation with perfect sizing */}
                     <Animated.View
+                      className="absolute top-1/2 left-0 right-0 z-10 pointer-events-none"
                       style={{
-                        position: 'absolute',
-                        top: '50%',
-                        left: 0,
-                        right: 0,
                         transform: [
                           { translateX: truckTranslateX },
                           { translateY: -14 } // Perfect vertical centering
                         ],
                         opacity: truckOpacityAnim,
-                        zIndex: 10,
                       }}
-                      pointerEvents="none"
                     >
-                      <Text style={{ 
-                        fontSize: 52,
+                      <Text className="text-[52px]" style={{ 
                         textShadowColor: 'rgba(0,0,0,0.3)',
                         textShadowOffset: { width: 2, height: 2 },
                         textShadowRadius: 4,
-                        // Remove rotate: '360deg' for emoji, or use flip if needed
                       }}>
                         🚛
                       </Text>
@@ -603,16 +506,9 @@ export default function Home() {
 
                     {/* Subtle gradient overlay for depth */}
                     <Animated.View
+                      className="absolute inset-0 bg-sky-500 rounded-[32px]"
                       style={{
-                        position: 'absolute',
-                        top: 0,
-                        left: 0,
-                        right: 0,
-                        bottom: 0,
-                        // background: 'linear-gradient(45deg, rgba(255,255,255,0.1), rgba(255,255,255,0))', // Not valid in React Native
-                        backgroundColor: 'skyblue',
                         opacity: buttonBackgroundAnim,
-                        borderRadius: 20,
                       }}
                     />
                   </Animated.View>
@@ -621,35 +517,28 @@ export default function Home() {
             </View>
 
             {/* Quick Stats with better spacing */}
-            <View style={{
-              flexDirection: 'row',
-              justifyContent: 'space-around',
-              marginTop: 28,
-              paddingTop: 24,
-              borderTopWidth: 1,
-              borderTopColor: '#f1f5f9',
-            }}>
-              <View style={{ alignItems: 'center' }}>
-                <Text style={{ color: '#10b981', fontSize: 24, fontWeight: '800' }}>
+            <View className="flex-row justify-around mt-7 pt-6 border-t border-slate-100">
+              <View className="items-center">
+                <Text className="text-green-500 text-2xl font-black">
                   {impactCounter}kg
                 </Text>
-                <Text style={{ color: '#64748b', fontSize: 13, marginTop: 4 , marginLeft:2}}> 
+                <Text className="text-slate-500 text-xs mt-1 ml-0.5"> 
                   E-Waste Recycled
                 </Text>
               </View>
-              <View style={{ alignItems: 'center' }}>
-                <Text style={{ color: '#3b82f6', fontSize: 24, fontWeight: '800' }}>
+              <View className="items-center">
+                <Text className="text-blue-500 text-2xl font-black">
                   240+
                 </Text>
-                <Text style={{ color: '#64748b', fontSize: 13, marginTop: 4 }}>
+                <Text className="text-slate-500 text-xs mt-1">
                   Businesses
                 </Text>
               </View>
-              <View style={{ alignItems: 'center' }}>
-                <Text style={{ color: '#8b5cf6', fontSize: 24, fontWeight: '800' }}>
+              <View className="items-center">
+                <Text className="text-blue-500 text-2xl font-black">
                   42
                 </Text>
-                <Text style={{ color: '#64748b', fontSize: 13, marginTop: 4 }}>
+                <Text className="text-slate-500 text-xs mt-1">
                   Tons CO₂ Saved
                 </Text>
               </View>
@@ -659,9 +548,8 @@ export default function Home() {
 
         {/* E-Waste Tips Card with better animations */}
         <Animated.View
+          className="mx-6 mb-6"
           style={{
-            marginHorizontal: 24,
-            marginBottom: 24,
             opacity: fadeAnim,
             transform: [{ translateY: slideAnimNative }],
           }}
@@ -671,46 +559,24 @@ export default function Home() {
             locations={[0, 0.7, 1]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
-            style={{
-              borderRadius: 24,
-              padding: 24,
-              shadowColor: '#059669',
-              shadowOffset: { width: 0, height: 6 },
-              shadowOpacity: 0.1,
-              shadowRadius: 16,
-              elevation: 6,
-            }}
+            className="rounded-6 p-6 shadow-lg shadow-green-600/10 elevation-6"
           >
-            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 16 }}>
+            <View className="flex-row items-center mb-4">
               <Ionicons name="bulb" size={32} color="#059669" />
-              <Text style={{
-                color: '#047857',
-                fontSize: 22,
-                fontWeight: '700',
-                flex: 1,
-                marginLeft: 12,
-              }}>
+              <Text className="text-green-800 text-[22px] font-bold flex-1 ml-3">
                 E-Waste Tips
               </Text>
-              <View style={{
-                backgroundColor: '#059669',
-                paddingHorizontal: 12,
-                paddingVertical: 6,
-                borderRadius: 16,
-              }}>
-                <Text style={{ color: '#fff', fontSize: 12, fontWeight: '700' }}>
+              <View className="bg-green-600 px-3 py-1.5 rounded-4">
+                <Text className="text-white text-xs font-bold">
                   TIP #{currentTip + 1}
                 </Text>
               </View>
             </View>
             
             <Animated.Text
+              className="text-green-900 text-base leading-6 font-medium"
               style={{
-                color: '#065f46',
-                fontSize: 16,
-                lineHeight: 24,
                 opacity: tipFadeAnim,
-                fontWeight: '500',
               }}
               key={currentTip}
             >
@@ -718,21 +584,13 @@ export default function Home() {
             </Animated.Text>
             
             {/* Progress indicators */}
-            <View style={{
-              flexDirection: 'row',
-              justifyContent: 'center',
-              marginTop: 20,
-            }}>
+            <View className="flex-row justify-center mt-5">
               {eWasteTips.map((_, index) => (
                 <View
                   key={index}
-                  style={{
-                    width: 8,
-                    height: 8,
-                    borderRadius: 4,
-                    marginHorizontal: 4,
-                    backgroundColor: index === currentTip ? '#059669' : '#86efac',
-                  }}
+                  className={`w-2 h-2 rounded-1 mx-1 ${
+                    index === currentTip ? 'bg-green-600' : 'bg-green-300'
+                  }`}
                 />
               ))}
             </View>
@@ -741,9 +599,8 @@ export default function Home() {
 
         {/* Global E-Waste Statistics */}
         <Animated.View
+          className="mx-6 mb-6"
           style={{
-            marginHorizontal: 24,
-            marginBottom: 24,
             opacity: fadeAnim,
             transform: [{ translateY: slideAnimNative }],
           }}
@@ -753,41 +610,23 @@ export default function Home() {
             locations={[0, 0.7, 1]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
-            style={{
-              borderRadius: 24,
-              padding: 24,
-              shadowColor: '#3b82f6',
-              shadowOffset: { width: 0, height: 6 },
-              shadowOpacity: 0.1,
-              shadowRadius: 16,
-              elevation: 6,
-            }}
+            className="rounded-6 p-6 shadow-lg shadow-blue-500/10 elevation-6"
           >
-            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 20 }}>
+            <View className="flex-row items-center mb-5">
               <Ionicons name="stats-chart" size={32} color="#3b82f6" />
-              <Text style={{
-                color: '#1e40af',
-                fontSize: 22,
-                fontWeight: '700',
-                marginLeft: 12,
-              }}>
+              <Text className="text-blue-800 text-[22px] font-bold ml-3">
                 Global E-Waste Statistics
               </Text>
             </View>
             
-            <View style={{ gap: 20 }}>
+            <View className="gap-5">
               {statsData.map((stat, index) => (
                 <View key={index}>
-                  <View style={{
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    marginBottom: 4,
-                  }}>
-                    <Text style={{ color: '#1d4ed8', fontSize: 15, fontWeight: '500', flex: 1 }}>
+                  <View className="flex-row items-center justify-between mb-1">
+                    <Text className="text-blue-700 text-[15px] font-medium flex-1">
                       {stat.label}
                     </Text>
-                    <Text style={{ color: '#1e40af', fontWeight: '800', fontSize: 16 }}>
+                    <Text className="text-blue-800 font-black text-base">
                       {stat.value}
                     </Text>
                   </View>
@@ -800,23 +639,17 @@ export default function Home() {
 
         {/* E-Waste Categories with horizontal scroll */}
         <Animated.View
+          className="mx-6 mb-6"
           style={{
-            marginHorizontal: 24,
-            marginBottom: 24,
             opacity: fadeAnim,
             transform: [{ translateY: slideAnimNative }],
           }}
         >
-          <View style={{ marginBottom: 16 }}>
-            <Text style={{
-              color: '#1e293b',
-              fontSize: 22,
-              fontWeight: '700',
-              marginBottom: 4,
-            }}>
+          <View className="mb-4">
+            <Text className="text-slate-800 text-[22px] font-bold mb-1">
               E-Waste Categories
             </Text>
-            <Text style={{ color: '#64748b', fontSize: 15 }}>
+            <Text className="text-slate-500 text-[15px]">
               We accept these types of electronic waste
             </Text>
           </View>
@@ -829,105 +662,42 @@ export default function Home() {
             snapToInterval={160}
             snapToAlignment="start"
           >
-            <View style={{ flexDirection: 'row', gap: 16 }}>
+            <View className="flex-row gap-4">
               {/* Category 1 */}
-              <View style={{
-                backgroundColor: '#fff',
-                borderRadius: 20,
-                padding: 20,
-                width: 160,
-                shadowColor: '#64748b',
-                shadowOffset: { width: 0, height: 4 },
-                shadowOpacity: 0.1,
-                shadowRadius: 12,
-                elevation: 4,
-              }}>
-                <View style={{
-                  backgroundColor: '#dbeafe',
-                  padding: 12,
-                  borderRadius: 16,
-                  marginBottom: 12,
-                  alignSelf: 'flex-start',
-                }}>
+              <View className="bg-white rounded-5 p-5 w-40 shadow-md shadow-slate-500/10 elevation-4">
+                <View className="bg-blue-100 p-3 rounded-4 mb-3 self-start">
                   <Ionicons name="phone-portrait" size={28} color="#3b82f6" />
                 </View>
-                <Text style={{
-                  color: '#1e293b',
-                  fontWeight: '600',
-                  fontSize: 16,
-                  marginBottom: 4,
-                }}>
+                <Text className="text-slate-800 font-semibold text-base mb-1">
                   Mobile Devices
                 </Text>
-                <Text style={{ color: '#64748b', fontSize: 13, lineHeight: 18 }}>
+                <Text className="text-slate-500 text-xs leading-[18px]">
                   Phones, Tablets, Smartwatches
                 </Text>
               </View>
               
               {/* Category 2 */}
-              <View style={{
-                backgroundColor: '#fff',
-                borderRadius: 20,
-                padding: 20,
-                width: 160,
-                shadowColor: '#64748b',
-                shadowOffset: { width: 0, height: 4 },
-                shadowOpacity: 0.1,
-                shadowRadius: 12,
-                elevation: 4,
-              }}>
-                <View style={{
-                  backgroundColor: '#dcfce7',
-                  padding: 12,
-                  borderRadius: 16,
-                  marginBottom: 12,
-                  alignSelf: 'flex-start',
-                }}>
+              <View className="bg-white rounded-5 p-5 w-40 shadow-md shadow-slate-500/10 elevation-4">
+                <View className="bg-green-100 p-3 rounded-4 mb-3 self-start">
                   <Ionicons name="laptop" size={28} color="#10b981" />
                 </View>
-                <Text style={{
-                  color: '#1e293b',
-                  fontWeight: '600',
-                  fontSize: 16,
-                  marginBottom: 4,
-                }}>
+                <Text className="text-slate-800 font-semibold text-base mb-1">
                   Computers
                 </Text>
-                <Text style={{ color: '#64748b', fontSize: 13, lineHeight: 18 }}>
+                <Text className="text-slate-500 text-xs leading-[18px]">
                   Laptops, Desktops, Servers
                 </Text>
               </View>
               
               {/* Category 3 */}
-              <View style={{
-                backgroundColor: '#fff',
-                borderRadius: 20,
-                padding: 20,
-                width: 160,
-                shadowColor: '#64748b',
-                shadowOffset: { width: 0, height: 4 },
-                shadowOpacity: 0.1,
-                shadowRadius: 12,
-                elevation: 4,
-              }}>
-                <View style={{
-                  backgroundColor: '#fef3c7',
-                  padding: 12,
-                  borderRadius: 16,
-                  marginBottom: 12,
-                  alignSelf: 'flex-start',
-                }}>
+              <View className="bg-white rounded-5 p-5 w-40 shadow-md shadow-slate-500/10 elevation-4">
+                <View className="bg-amber-100 p-3 rounded-4 mb-3 self-start">
                   <Ionicons name="tv" size={28} color="#f59e0b" />
                 </View>
-                <Text style={{
-                  color: '#1e293b',
-                  fontWeight: '600',
-                  fontSize: 16,
-                  marginBottom: 4,
-                }}>
+                <Text className="text-slate-800 font-semibold text-base mb-1">
                   Entertainment
                 </Text>
-                <Text style={{ color: '#64748b', fontSize: 13, lineHeight: 18 }}>
+                <Text className="text-slate-500 text-xs leading-[18px]">
                   TVs, Speakers, Game Consoles
                 </Text>
               </View>
@@ -937,9 +707,8 @@ export default function Home() {
 
         {/* Recycling Centers */}
         <Animated.View
+          className="mx-6 mb-6"
           style={{
-            marginHorizontal: 24,
-            marginBottom: 24,
             opacity: fadeAnim,
             transform: [{ translateY: slideAnimNative }],
           }}
@@ -949,66 +718,28 @@ export default function Home() {
             locations={[0, 0.7, 1]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
-            style={{
-              borderRadius: 24,
-              padding: 24,
-              shadowColor: '#f59e0b',
-              shadowOffset: { width: 0, height: 6 },
-              shadowOpacity: 0.1,
-              shadowRadius: 16,
-              elevation: 6,
-            }}
+            className="rounded-6 p-6 shadow-lg shadow-amber-500/10 elevation-6"
           >
-            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 16 }}>
+            <View className="flex-row items-center mb-4">
               <Ionicons name="location" size={32} color="#d97706" />
-              <Text style={{
-                color: '#92400e',
-                fontSize: 22,
-                fontWeight: '700',
-                flex: 1,
-                marginLeft: 12,
-              }}>
+              <Text className="text-amber-900 text-[22px] font-bold flex-1 ml-3">
                 Certified E-Waste Centers
               </Text>
-              <Text style={{ color: '#a16207', fontSize: 14, fontWeight: '600' }}>
+              <Text className="text-amber-700 text-sm font-semibold">
                 📍 3.2km
               </Text>
             </View>
             
-            <Text style={{
-              color: '#a16207',
-              fontSize: 16,
-              lineHeight: 24,
-              marginBottom: 20,
-              fontWeight: '500',
-            }}>
+            <Text className="text-amber-700 text-base leading-6 mb-5 font-medium">
               Our certified partners ensure secure data destruction and environmentally 
               compliant recycling processes for all your e-waste.
             </Text>
             
             <TouchableOpacity 
-              style={{
-                backgroundColor: '#f59e0b',
-                paddingVertical: 14,
-                paddingHorizontal: 24,
-                borderRadius: 16,
-                flexDirection: 'row',
-                alignItems: 'center',
-                justifyContent: 'center',
-                shadowColor: '#d97706',
-                shadowOffset: { width: 0, height: 4 },
-                shadowOpacity: 0.2,
-                shadowRadius: 8,
-                elevation: 4,
-              }}
+              className="bg-amber-500 py-3.5 px-6 rounded-4 flex-row items-center justify-center shadow-lg shadow-amber-600/20 elevation-4"
               activeOpacity={0.8}
             >
-              <Text style={{
-                color: '#fff',
-                fontWeight: '700',
-                fontSize: 16,
-                marginRight: 8,
-              }}>
+              <Text className="text-white font-bold text-base mr-2">
                 Find Centers
               </Text>
               <Ionicons name="arrow-forward" size={18} color="#fff" />
@@ -1018,88 +749,41 @@ export default function Home() {
 
         {/* Environmental Impact */}
         <Animated.View
+          className="mx-6 mb-8"
           style={{
-            marginHorizontal: 24,
-            marginBottom: 32,
             opacity: fadeAnim,
             transform: [{ translateY: slideAnimNative }],
           }}
         >
           <LinearGradient
-            colors={['#faf5ff', '#f3e8ff', '#e9d5ff']}
+            colors={['#f0f9ff', '#e0f2fe', '#bae6fd']}
             locations={[0, 0.7, 1]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
-            style={{
-              borderRadius: 24,
-              padding: 24,
-              shadowColor: '#8b5cf6',
-              shadowOffset: { width: 0, height: 6 },
-              shadowOpacity: 0.1,
-              shadowRadius: 16,
-              elevation: 6,
-            }}
+            className="rounded-6 p-6 shadow-lg shadow-sky-500/10 elevation-6"
           >
-            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 20 }}>
-              <Ionicons name="earth" size={32} color="#8b5cf6" />
-              <Text style={{
-                color: '#6b21a8',
-                fontSize: 22,
-                fontWeight: '700',
-                marginLeft: 12,
-              }}>
+            <View className="flex-row items-center mb-5">
+              <Ionicons name="earth" size={32} color="#0284c7" />
+              <Text className="text-sky-700 text-[22px] font-bold ml-3">
                 Your Impact Matters
               </Text>
             </View>
             
-            <View style={{ gap: 16 }}>
-              <View style={{
-                backgroundColor: 'rgba(255, 255, 255, 0.6)',
-                padding: 16,
-                borderRadius: 16,
-                borderLeftWidth: 4,
-                borderLeftColor: '#8b5cf6',
-              }}>
-                <Text style={{
-                  color: '#7c3aed',
-                  fontSize: 15,
-                  fontWeight: '600',
-                  lineHeight: 22,
-                }}>
+            <View className="gap-4">
+              <View className="bg-white/60 p-4 rounded-4 border-l-4 border-sky-500">
+                <Text className="text-sky-700 text-[15px] font-semibold leading-[22px]">
                   💻 Recycling one laptop saves enough energy to power a home for 4 hours
                 </Text>
               </View>
               
-              <View style={{
-                backgroundColor: 'rgba(255, 255, 255, 0.6)',
-                padding: 16,
-                borderRadius: 16,
-                borderLeftWidth: 4,
-                borderLeftColor: '#8b5cf6',
-              }}>
-                <Text style={{
-                  color: '#7c3aed',
-                  fontSize: 15,
-                  fontWeight: '600',
-                  lineHeight: 22,
-                }}>
+              <View className="bg-white/60 p-4 rounded-4 border-l-4 border-sky-500">
+                <Text className="text-sky-700 text-[15px] font-semibold leading-[22px]">
                   📱 1 million phones can yield 35,000 lbs of copper, 772 lbs of silver, and 75 lbs of gold
                 </Text>
               </View>
               
-              <View style={{
-                backgroundColor: 'rgba(255, 255, 255, 0.6)',
-                padding: 16,
-                borderRadius: 16,
-                borderLeftWidth: 4,
-                borderLeftColor: '#8b5cf6',
-              }}>
-                <Text style={{
-                  color: '#7c3aed',
-                  fontSize: 15,
-                  fontWeight: '600',
-                  lineHeight: 22,
-                }}>
+              <View className="bg-white/60 p-4 rounded-4 border-l-4 border-sky-500">
+                <Text className="text-sky-700 text-[15px] font-semibold leading-[22px]">
                   🔋 Proper e-waste recycling prevents heavy metals from contaminating soil and water
                 </Text>
               </View>

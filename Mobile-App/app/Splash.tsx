@@ -132,11 +132,11 @@ export default function Splash() {
           await setUserId(storedId);
           router.replace("/(tabs)/home");
         } else {
-          router.replace("./auth/login");
+          router.replace("/auth/login");
         }
       } catch (err) {
         console.log("Splash check error:", err);
-        router.replace("./auth/login");
+        router.replace("/auth/login");
       } finally {
         setChecking(false);
       }
@@ -159,7 +159,7 @@ export default function Splash() {
         left: 0,
         right: 0,
         bottom: 0,
-        background: 'linear-gradient(135deg, #0d4f3c 0%, #10684e 100%)',
+        backgroundColor: '#0d4f3c', // Replace with a solid color or use an ImageBackground for gradients
         opacity: 0.8,
       }} />
 

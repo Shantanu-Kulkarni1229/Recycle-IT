@@ -1,5 +1,4 @@
-/* eslint-disable react/no-unescaped-entities */
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import {
   View,
   Text,
@@ -22,16 +21,13 @@ import {
   Eye,
   XCircle,
   MapPin,
-  Loader2,
   Info,
-  CheckCircle,
-  ArrowLeft,
   Clock,
   Package,
   Smartphone,
 } from "lucide-react-native";
 
-const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
+const { height: screenHeight } = Dimensions.get('window');
 
 type Pickup = {
   _id: string;
@@ -116,7 +112,7 @@ export default function PreviousHistory() {
   const scaleAnim = useState(new Animated.Value(0.9))[0];
 
   // Fetch pickups
-  const fetchPickups = async () => {
+  const fetchPickups = useCallback(async () => {
     if (!userId) {
       setError("User not logged in");
       setLoading(false);
@@ -156,11 +152,11 @@ export default function PreviousHistory() {
       setError(err.response?.data?.message || "Failed to fetch history");
     }
     setLoading(false);
-  };
+  }, [userId, fadeAnim, slideAnim, scaleAnim]);
 
   useEffect(() => {
     fetchPickups();
-  }, [userId]);
+  }, [fetchPickups]);
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -256,33 +252,43 @@ export default function PreviousHistory() {
     setModalLoading(true);
     setModalVisible(true);
     setTrackInfo(null);
+    setModalPickup(null); // Reset modal pickup first
 
     try {
       console.log("Fetching pickup details for ID:", pickupId);
       
-      // First try to get from API
-      let pickup;
-      try {
-        const response = await api.get(`schedule-pickup/${pickupId}`);
-        pickup = response.data.data || response.data;
-        console.log("Details response:", pickup);
-      } catch (err: any) {
-        console.log("API call failed, using local data");
-        // If API fails, use local data
-        pickup = pickups.find(p => p._id === pickupId);
-      }
+      // First try to find from local data (faster)
+      let pickup = pickups.find(p => p._id === pickupId);
       
       if (pickup) {
+        console.log("Found pickup in local data:", pickup);
         setModalPickup(pickup);
+        setModalLoading(false);
       } else {
-        Alert.alert("Error", "Failed to fetch pickup details");
-        setModalVisible(false);
+        // If not found locally, try API
+        try {
+          const response = await api.get(`schedule-pickup/${pickupId}`);
+          pickup = response.data.data || response.data;
+          console.log("Details response from API:", pickup);
+          
+          if (pickup) {
+            setModalPickup(pickup);
+          } else {
+            Alert.alert("Error", "Failed to fetch pickup details");
+            setModalVisible(false);
+          }
+        } catch (err: any) {
+          console.log("API call failed:", err);
+          Alert.alert("Error", "Failed to fetch pickup details");
+          setModalVisible(false);
+        } finally {
+          setModalLoading(false);
+        }
       }
     } catch (err: any) {
       console.error("View details error:", err);
       Alert.alert("Error", "Failed to fetch pickup details");
       setModalVisible(false);
-    } finally {
       setModalLoading(false);
     }
   };
@@ -304,7 +310,7 @@ export default function PreviousHistory() {
       try {
         const response = await api.get(`schedule-pickup/${pickupId}`);
         pickup = response.data.data || response.data;
-      } catch (err: any) {
+      } catch {
         pickup = pickups.find(p => p._id === pickupId);
       }
 
@@ -315,7 +321,7 @@ export default function PreviousHistory() {
         try {
           const trackResponse = await api.get(`schedule-pickup/${pickupId}/track`);
           setTrackInfo(trackResponse.data.data || trackResponse.data);
-        } catch (err: any) {
+        } catch {
           // Create mock tracking info if endpoint doesn't exist
           const mockTrackInfo = {
             status: pickup.pickupStatus,
@@ -662,7 +668,7 @@ export default function PreviousHistory() {
                 </View>
                 <Text className="text-xl font-semibold text-gray-800 mb-2">No pickups yet</Text>
                 <Text className="text-gray-500 text-center text-base leading-6">
-                  When you schedule pickups, they'll appear here for easy tracking
+                  When you schedule pickups, they&apos;ll appear here for easy tracking
                 </Text>
               </View>
             </Animated.View>
@@ -676,15 +682,10 @@ export default function PreviousHistory() {
       <Modal
         visible={modalVisible}
         animationType="slide"
-        transparent={true}
         onRequestClose={closeModal}
         presentationStyle="pageSheet"
       >
-        <View style={{ 
-          flex: 1, 
-          backgroundColor: 'rgba(0,0,0,0.5)',
-          justifyContent: 'flex-end'
-        }}>
+        <View style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.5)' }}>
           <View style={{
             backgroundColor: 'white',
             borderTopLeftRadius: 24,
@@ -695,6 +696,7 @@ export default function PreviousHistory() {
             shadowOpacity: 0.25,
             shadowRadius: 8,
             elevation: 8,
+            flex: 1
           }}>
             {/* Modal header */}
             <View style={{
@@ -783,84 +785,9 @@ export default function PreviousHistory() {
                       {modalPickup.weight && (
                         <View style={{ flexDirection: 'row' }}>
                           <Text style={{ fontWeight: '500', color: '#6b7280', width: 80 }}>Weight:</Text>
-                          <Text style={{ color: '#1f2937', flex: 1 }}>{modalPickup.weight} kg</Text>
+                          <Text style={{ color: '#1f2937', flex: 1 }}>{modalPickup.weight}</Text>
                         </View>
                       )}
-                    </View>
-                  </View>
-
-                  {/* Pickup Information */}
-                  <View style={{
-                    backgroundColor: '#eff6ff',
-                    borderRadius: 16,
-                    padding: 16,
-                    marginBottom: 16
-                  }}>
-                    <Text style={{
-                      fontSize: 18,
-                      fontWeight: '600',
-                      color: '#1f2937',
-                      marginBottom: 12
-                    }}>
-                      Pickup Information
-                    </Text>
-                    
-                    <View style={{ gap: 8 }}>
-                      <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                        <Text style={{ fontWeight: '500', color: '#6b7280', width: 80 }}>Status:</Text>
-                        <View style={{
-                          backgroundColor: statusColors[modalPickup.pickupStatus]?.bg.includes('amber') ? '#fef3c7' :
-                                           statusColors[modalPickup.pickupStatus]?.bg.includes('blue') ? '#dbeafe' :
-                                           statusColors[modalPickup.pickupStatus]?.bg.includes('emerald') ? '#d1fae5' :
-                                           statusColors[modalPickup.pickupStatus]?.bg.includes('red') ? '#fee2e2' : '#f3f4f6',
-                          paddingHorizontal: 12,
-                          paddingVertical: 4,
-                          borderRadius: 20
-                        }}>
-                          <Text style={{
-                            fontSize: 12,
-                            fontWeight: '600',
-                            color: statusColors[modalPickup.pickupStatus]?.text.includes('amber') ? '#d97706' :
-                                   statusColors[modalPickup.pickupStatus]?.text.includes('blue') ? '#2563eb' :
-                                   statusColors[modalPickup.pickupStatus]?.text.includes('emerald') ? '#047857' :
-                                   statusColors[modalPickup.pickupStatus]?.text.includes('red') ? '#dc2626' : '#6b7280'
-                          }}>
-                            {modalPickup.pickupStatus}
-                          </Text>
-                        </View>
-                      </View>
-                      <View style={{ flexDirection: 'row' }}>
-                        <Text style={{ fontWeight: '500', color: '#6b7280', width: 80 }}>Date:</Text>
-                        <Text style={{ color: '#1f2937', flex: 1 }}>
-                          {modalPickup.preferredPickupDate
-                            ? new Date(modalPickup.preferredPickupDate).toLocaleDateString('en-US', {
-                                weekday: 'long',
-                                year: 'numeric',
-                                month: 'long',
-                                day: 'numeric'
-                              })
-                            : "Not set"}
-                        </Text>
-                      </View>
-                      <View style={{ flexDirection: 'row' }}>
-                        <Text style={{ fontWeight: '500', color: '#6b7280', width: 80 }}>Address:</Text>
-                        <Text style={{ color: '#1f2937', flex: 1 }}>
-                          {modalPickup.pickupAddress}, {modalPickup.city}, {modalPickup.state} - {modalPickup.pincode}
-                        </Text>
-                      </View>
-                      <View style={{ flexDirection: 'row' }}>
-                        <Text style={{ fontWeight: '500', color: '#6b7280', width: 80 }}>Requested:</Text>
-                        <Text style={{ color: '#1f2937', flex: 1 }}>
-                          {new Date(modalPickup.createdAt).toLocaleDateString('en-US', {
-                            weekday: 'short',
-                            year: 'numeric',
-                            month: 'short',
-                            day: 'numeric',
-                            hour: '2-digit',
-                            minute: '2-digit'
-                          })}
-                        </Text>
-                      </View>
                     </View>
                   </View>
 
@@ -900,13 +827,11 @@ export default function PreviousHistory() {
                       }}>
                         Tracking Information
                       </Text>
-                      
                       <View style={{ gap: 8 }}>
                         <View style={{ flexDirection: 'row' }}>
                           <Text style={{ fontWeight: '500', color: '#047857', width: 96 }}>Status:</Text>
                           <Text style={{ color: '#065f46', flex: 1 }}>{trackInfo.status}</Text>
                         </View>
-                        
                         {trackInfo.progress && (
                           <View style={{ marginTop: 12 }}>
                             <Text style={{ fontWeight: '500', color: '#047857', marginBottom: 8 }}>Progress</Text>
@@ -927,7 +852,6 @@ export default function PreviousHistory() {
                             </Text>
                           </View>
                         )}
-
                         {trackInfo.timeline && (
                           <View style={{ marginTop: 16 }}>
                             <Text style={{ fontWeight: '500', color: '#047857', marginBottom: 8 }}>Timeline</Text>
@@ -957,7 +881,6 @@ export default function PreviousHistory() {
                             ))}
                           </View>
                         )}
-
                         {trackInfo.message && (
                           <View style={{
                             marginTop: 12,
