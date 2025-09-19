@@ -172,6 +172,25 @@ const Layout: React.FC<LayoutProps> = ({ onLogout, children }) => {
 
           {/* Logout Button */}
           <div className="p-4 border-t">
+            {/* Legal Documents Links */}
+            <div className="mb-4 space-y-2">
+              <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Legal</h4>
+              <Link
+                to="/terms-recycler"
+                className="flex items-center p-2 text-xs text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                <span className="mr-2">📋</span>
+                Terms & Conditions
+              </Link>
+              <Link
+                to="/code-of-conduct-pickup"
+                className="flex items-center p-2 text-xs text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                <span className="mr-2">📜</span>
+                Code of Conduct
+              </Link>
+            </div>
+            
             <button
               onClick={onLogout}
               className="w-full flex items-center justify-center p-3 text-red-600 hover:bg-red-50 rounded-lg text-sm font-medium transition-colors"

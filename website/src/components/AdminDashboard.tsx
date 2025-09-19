@@ -8,7 +8,9 @@ import {
   Settings,
   Bell,
   Search,
-  Filter
+  Filter,
+  Shield,
+  AlertTriangle
 } from 'lucide-react';
 import { adminApiService } from '../services/adminApi';
 import { testimonialAPI } from '../services/testimonialAPI';
@@ -18,7 +20,7 @@ interface AdminDashboardProps {
 }
 
 const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
-  const [activeTab, setActiveTab] = useState<'overview' | 'recyclers' | 'transactions' | 'testimonials'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'recyclers' | 'transactions' | 'testimonials' | 'legal'>('overview');
   const [recyclers, setRecyclers] = useState<any[]>([]);
   const [transactions, setTransactions] = useState<any[]>([]);
   const [testimonials, setTestimonials] = useState<any[]>([]);
@@ -590,6 +592,191 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
     );
   };
 
+  const renderLegal = () => (
+    <div className="space-y-6">
+      {/* Legal Documents Header */}
+      <div className="bg-white rounded-lg shadow p-6">
+        <h2 className="text-2xl font-bold text-gray-900 mb-4">Legal Documents Management</h2>
+        <p className="text-gray-600">
+          Manage terms and conditions, codes of conduct, and other legal documents for recyclers and delivery partners.
+        </p>
+      </div>
+
+      {/* Quick Links Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {/* Recycler Terms */}
+        <div className="bg-white rounded-lg shadow p-6 hover:shadow-lg transition-shadow">
+          <div className="flex items-center mb-4">
+            <div className="p-3 rounded-full bg-blue-100">
+              <FileText className="w-6 h-6 text-blue-600" />
+            </div>
+            <div className="ml-4">
+              <h3 className="text-lg font-medium text-gray-900">Recycler Terms</h3>
+              <p className="text-sm text-gray-500">Partnership Agreement</p>
+            </div>
+          </div>
+          <p className="text-gray-600 text-sm mb-4">
+            Complete terms and conditions for recycler partnerships including responsibilities, payments, and compliance requirements.
+          </p>
+          <div className="flex space-x-2">
+            <a
+              href="/terms-recycler"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex-1 text-center bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors text-sm"
+            >
+              View Document
+            </a>
+          </div>
+        </div>
+
+        {/* Delivery Terms */}
+        <div className="bg-white rounded-lg shadow p-6 hover:shadow-lg transition-shadow">
+          <div className="flex items-center mb-4">
+            <div className="p-3 rounded-full bg-green-100">
+              <FileText className="w-6 h-6 text-green-600" />
+            </div>
+            <div className="ml-4">
+              <h3 className="text-lg font-medium text-gray-900">Delivery Terms</h3>
+              <p className="text-sm text-gray-500">Partner Agreement</p>
+            </div>
+          </div>
+          <p className="text-gray-600 text-sm mb-4">
+            Terms and conditions for delivery partners including service standards, safety requirements, and payment terms.
+          </p>
+          <div className="flex space-x-2">
+            <a
+              href="/terms-delivery"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex-1 text-center bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700 transition-colors text-sm"
+            >
+              View Document
+            </a>
+          </div>
+        </div>
+
+        {/* Code of Conduct - Pickup */}
+        <div className="bg-white rounded-lg shadow p-6 hover:shadow-lg transition-shadow">
+          <div className="flex items-center mb-4">
+            <div className="p-3 rounded-full bg-red-100">
+              <Shield className="w-6 h-6 text-red-600" />
+            </div>
+            <div className="ml-4">
+              <h3 className="text-lg font-medium text-gray-900">Pickup Staff Code</h3>
+              <p className="text-sm text-gray-500">Behavioral Guidelines</p>
+            </div>
+          </div>
+          <p className="text-gray-600 text-sm mb-4">
+            Code of conduct for pickup staff including professional behavior, safety protocols, and prohibited actions.
+          </p>
+          <div className="flex space-x-2">
+            <a
+              href="/code-of-conduct-pickup"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex-1 text-center bg-red-600 text-white py-2 px-4 rounded-lg hover:bg-red-700 transition-colors text-sm"
+            >
+              View Document
+            </a>
+          </div>
+        </div>
+
+        {/* Code of Conduct - Delivery */}
+        <div className="bg-white rounded-lg shadow p-6 hover:shadow-lg transition-shadow">
+          <div className="flex items-center mb-4">
+            <div className="p-3 rounded-full bg-orange-100">
+              <Shield className="w-6 h-6 text-orange-600" />
+            </div>
+            <div className="ml-4">
+              <h3 className="text-lg font-medium text-gray-900">Delivery Staff Code</h3>
+              <p className="text-sm text-gray-500">Behavioral Guidelines</p>
+            </div>
+          </div>
+          <p className="text-gray-600 text-sm mb-4">
+            Code of conduct for delivery personnel including identification requirements, safety measures, and disciplinary actions.
+          </p>
+          <div className="flex space-x-2">
+            <a
+              href="/code-of-conduct-delivery"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex-1 text-center bg-orange-600 text-white py-2 px-4 rounded-lg hover:bg-orange-700 transition-colors text-sm"
+            >
+              View Document
+            </a>
+          </div>
+        </div>
+
+        {/* General Terms */}
+        <div className="bg-white rounded-lg shadow p-6 hover:shadow-lg transition-shadow">
+          <div className="flex items-center mb-4">
+            <div className="p-3 rounded-full bg-purple-100">
+              <FileText className="w-6 h-6 text-purple-600" />
+            </div>
+            <div className="ml-4">
+              <h3 className="text-lg font-medium text-gray-900">General Terms</h3>
+              <p className="text-sm text-gray-500">Platform Terms</p>
+            </div>
+          </div>
+          <p className="text-gray-600 text-sm mb-4">
+            General terms and conditions including payments, confidentiality, liability, and dispute resolution procedures.
+          </p>
+          <div className="flex space-x-2">
+            <a
+              href="/terms"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex-1 text-center bg-purple-600 text-white py-2 px-4 rounded-lg hover:bg-purple-700 transition-colors text-sm"
+            >
+              View Document
+            </a>
+          </div>
+        </div>
+
+        {/* General Code of Conduct */}
+        <div className="bg-white rounded-lg shadow p-6 hover:shadow-lg transition-shadow">
+          <div className="flex items-center mb-4">
+            <div className="p-3 rounded-full bg-gray-100">
+              <Shield className="w-6 h-6 text-gray-600" />
+            </div>
+            <div className="ml-4">
+              <h3 className="text-lg font-medium text-gray-900">General Code</h3>
+              <p className="text-sm text-gray-500">All Staff Guidelines</p>
+            </div>
+          </div>
+          <p className="text-gray-600 text-sm mb-4">
+            Universal code of conduct applicable to all staff members including identification, professional behavior, and compliance.
+          </p>
+          <div className="flex space-x-2">
+            <a
+              href="/code-of-conduct"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex-1 text-center bg-gray-600 text-white py-2 px-4 rounded-lg hover:bg-gray-700 transition-colors text-sm"
+            >
+              View Document
+            </a>
+          </div>
+        </div>
+      </div>
+
+      {/* Legal Compliance Note */}
+      <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6">
+        <div className="flex items-start">
+          <AlertTriangle className="w-6 h-6 text-yellow-600 mt-0.5 mr-3" />
+          <div>
+            <h3 className="font-medium text-yellow-800 mb-2">Legal Compliance Notice</h3>
+            <p className="text-yellow-700 text-sm">
+              All partners and staff members must acknowledge and comply with these documents. Violation of terms may result in 
+              immediate termination of partnership agreements. Ensure all team members have access to and understand these requirements.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
   return (
     <div className="min-h-screen bg-gray-100">
       {/* Header */}
@@ -670,6 +857,17 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
               </svg>
               Testimonials
             </button>
+            <button
+              onClick={() => setActiveTab('legal')}
+              className={`py-4 px-1 border-b-2 font-medium text-sm ${
+                activeTab === 'legal'
+                  ? 'border-blue-500 text-blue-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              <FileText className="h-5 w-5 inline-block mr-2" />
+              Legal Documents
+            </button>
           </nav>
         </div>
       </div>
@@ -686,6 +884,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
             {activeTab === 'recyclers' && renderRecyclers()}
             {activeTab === 'transactions' && renderTransactions()}
             {activeTab === 'testimonials' && renderTestimonials()}
+            {activeTab === 'legal' && renderLegal()}
           </>
         )}
       </main>
