@@ -26,7 +26,7 @@ exports.confirmReceived = async (req, res) => {
     await SchedulePickup.findByIdAndUpdate(pickup.id, { pickupStatus: "Verified" });
     await pickup.save();
 
-    res.json({ success: true, message: "Device received at recycler center", data: pickup });
+    res.json({ success: true, message: "Device approved! and pickup is scheduled", data: pickup });
   } catch (error) {
     res.status(500).json({ success: false, message: "Error confirming device received", error: error.message });
   }
