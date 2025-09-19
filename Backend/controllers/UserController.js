@@ -4,6 +4,30 @@ const { sendOTPEmail } = require('../utils/emailService');
 const { validationResult } = require('express-validator');
 
 const UserController = {
+  getAllUsers: async (req, res) => {
+      try {
+        const verifiedUsers = await SchedulePickup.find({ 
+          isVerified: true 
+        })
+        .populate('userId', 'name email phoneNumber address');
+  
+        res.status(200).json({
+          success: true,
+          message: 'All verified users retrieved successfully',
+          count: verifiedUsers.length,
+          pickups: verifiedUsers
+        });
+  
+      } catch (error) {
+        console.error('Error fetching verified users:', error);
+        
+        res.status(500).json({
+          success: false,
+          message: 'Failed to fetch verified users',
+          error: error.message
+        });
+      }
+    },
   // Register new user
   registerUser: async (req, res) => {
     try {

@@ -1,4 +1,5 @@
 const express = require('express');
+const { getAllUsers } = require('../controllers/UserController');
 const router = express.Router();
 const {
   getAllRecyclers,
@@ -42,4 +43,5 @@ router.put('/recyclers/:id/verify', updateRecyclerVerification);
 // GET /api/admin/transactions - Get all transactions
 router.get('/transactions', getAllTransactions);
 
+router.get('/all-users', getAllUsers);
 module.exports = router;
