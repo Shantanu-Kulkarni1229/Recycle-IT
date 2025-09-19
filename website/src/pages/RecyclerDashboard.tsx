@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { pickupAPI, authAPI } from '../services/recyclerAPI';
-import { getRecyclerData, formatCurrency, formatDate, getStatusColor } from '../utils/helpers';
+import { getRecyclerData, formatDate, getStatusColor } from '../utils/helpers';
 
 interface EwasteItem {
   _id: string;

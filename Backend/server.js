@@ -23,6 +23,7 @@ const userRoutes = require('./routes/userRoutes');
 const recyclerRoutes = require('./routes/recyclerRoutes');
 const schedulePickupRoutes = require('./routes/schedulePickupRoutes');
 const recyclerPickupRoutes = require("./routes/recyclerPickupRoutes");
+const deliveryPartnerRoutes = require('./routes/deliveryPartnerRoutes');
 const adminRoutes = require('./routes/adminRoutes');
 const testimonialRoutes = require('./routes/testimonialRoutes');
 const paymentRoutes = require('./routes/paymentRoutes');
@@ -52,6 +53,7 @@ app.use('/api/payments/webhook', express.raw({ type: 'application/json' }));
 // Routes with specific rate limiting
 app.use('/api/payments', paymentLimiter, paymentRoutes);
 app.use("/api/recycler-pickups", recyclerPickupRoutes);
+app.use('/api/delivery-partners', deliveryPartnerRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/recyclers', recyclerRoutes);
 app.use('/api/schedule-pickup', schedulePickupRoutes);

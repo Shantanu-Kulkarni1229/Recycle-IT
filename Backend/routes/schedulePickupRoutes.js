@@ -6,12 +6,14 @@ const {
   cancelPickup,
   getPickupById,
   getUserPickups,
+  getAllPickups,
   assignRecycler,
   assignDeliveryAgent,
   updatePickupStatus,
   trackPickup,
   deletePickup,
   removePickupFile, // NEW
+  assignDeliveryPartner, // NEW
 } = require("../controllers/schedulePickupController");
 
 const router = express.Router();
@@ -34,6 +36,7 @@ router.put("/:id",
 );
 
 // Existing routes (no file upload needed)
+router.get("/", getAllPickups); // NEW: Get all pickups with filtering
 router.put("/:id/cancel", cancelPickup);
 router.get("/user/:userId", getUserPickups);
 router.get("/:id", getPickupById);
@@ -45,5 +48,8 @@ router.delete("/:id", deletePickup);
 
 // NEW: Remove specific file from pickup
 router.delete("/:id/file", removePickupFile);
+
+// NEW: Assign delivery partner to pickup
+router.put("/:id/assign-partner", assignDeliveryPartner);
 
 module.exports = router;

@@ -132,6 +132,10 @@ const schedulePickupSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "DeliveryAgent",
     },
+    assignedDeliveryPartnerId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "DeliveryPartner",
+    },
     cancellationReason: {
       type: String,
       trim: true,
