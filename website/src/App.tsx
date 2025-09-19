@@ -8,7 +8,7 @@ import Layout from './components/Layout';
 import AdminApp from './components/AdminApp';
 
 // Pages
-import Dashboard from './pages/Dashboard';
+import RecyclerDashboard from './pages/RecyclerDashboard';
 import Profile from './pages/Profile';
 import PickupManagement from './pages/PickupManagement';
 import EwasteInspection from './pages/EwasteInspection';
@@ -113,8 +113,8 @@ function App() {
           <Route path="/*" element={
             <Layout onLogout={handleLogout}>
               <Routes>
-                <Route path="/" element={<Dashboard />} />
-                <Route path="/dashboard" element={<Dashboard />} />
+                <Route path="/" element={<RecyclerDashboard />} />
+                <Route path="/dashboard" element={<RecyclerDashboard />} />
                 <Route path="/profile" element={<Profile />} />
                 <Route path="/pickup-management" element={<PickupManagement />} />
                 <Route path="/ewaste-inspection" element={<EwasteInspection />} />

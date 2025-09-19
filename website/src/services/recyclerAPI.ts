@@ -65,6 +65,10 @@ export const authAPI = {
     api.post('/recyclers/upload-documents', formData, {
       headers: { 'Content-Type': 'multipart/form-data' }
     }),
+    
+  // Test method to assign pickups to current recycler
+  assignTestPickups: () =>
+    api.post('/recyclers/assign-test-pickups'),
 };
 
 // Pickup API calls (based on existing backend endpoints)
@@ -81,8 +85,11 @@ export const pickupAPI = {
   updatePickupStatus: (pickupId: string, status: string) =>
     api.put(`/schedule-pickup/${pickupId}/status`, { status }),
     
+  assignRecycler: (pickupId: string, recyclerId: string) =>
+    api.put(`/schedule-pickup/${pickupId}/assign-recycler`, { recyclerId }),
+    
   getRecyclerPickups: (recyclerId: string) =>
-    api.get(`/recycler-pickups/recycler/${recyclerId}`),
+    api.get(`/recyclers/unapproved-device`),
     
   createInspectionReport: (data: any) =>
     api.post('/recycler-pickups', data),

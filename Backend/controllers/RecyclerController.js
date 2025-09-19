@@ -6,6 +6,50 @@ const { sendOTPEmail } = require('../utils/emailService');
 const { validationResult } = require('express-validator');
 
 const RecyclerController = {
+  // Test method to assign pickups to recyclers (for development)
+  assignTestPickups: async (req, res) => {
+    try {
+      const recyclerId = req.recycler._id;
+      
+      // Find unassigned pickups
+      const unassignedPickups = await SchedulePickup.find({ 
+        assignedRecyclerId: { $exists: false },
+        pickupStatus: 'Pending'
+      }).limit(5);
+
+      if (unassignedPickups.length === 0) {
+        return res.status(200).json({
+          success: true,
+          message: 'No unassigned pickups available',
+          count: 0
+        });
+      }
+
+      // Assign them to this recycler
+      const assignedPickups = await SchedulePickup.updateMany(
+        { _id: { $in: unassignedPickups.map(p => p._id) } },
+        { 
+          assignedRecyclerId: recyclerId,
+          pickupStatus: 'Scheduled'
+        }
+      );
+
+      res.status(200).json({
+        success: true,
+        message: `${assignedPickups.modifiedCount} pickups assigned to recycler`,
+        count: assignedPickups.modifiedCount
+      });
+
+    } catch (error) {
+      console.error('Error assigning test pickups:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to assign test pickups',
+        error: error.message
+      });
+    }
+  },
+
    getUnApprovedPickups: async (req, res) => {
     try {
       const approvedPickups = await SchedulePickup.find({ 
@@ -422,24 +466,27 @@ const RecyclerController = {
   // Get assigned e-waste
   getAssignedEwaste: async (req, res) => {
     try {
-      const recycler = await Recycler.findById(req.recycler._id)
-        .populate('assignedEwaste');
+      const recyclerId = req.recycler._id;
 
-      if (!recycler) {
-        return res.status(404).json({
-          success: false,
-          message: 'Recycler not found'
-        });
-      }
+      // Find all schedule pickups assigned to this recycler
+      const assignedPickups = await SchedulePickup.find({ 
+        assignedRecyclerId: recyclerId 
+      })
+      .populate('userId', 'name email phoneNumber')
+      .sort({ preferredPickupDate: 1 });
 
       res.json({
         success: true,
-        assignedEwaste: recycler.assignedEwaste
+        message: 'Assigned e-waste retrieved successfully',
+        count: assignedPickups.length,
+        data: assignedPickups
       });
     } catch (error) {
+      console.error('Error fetching assigned e-waste:', error);
       res.status(500).json({
         success: false,
-        message: error.message
+        message: 'Failed to fetch assigned e-waste',
+        error: error.message
       });
     }
   },
