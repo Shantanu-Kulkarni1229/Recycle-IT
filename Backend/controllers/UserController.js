@@ -49,6 +49,42 @@ const UserController = {
       });
     }
   },
+  // Get recycler by ID with full details
+    getRecyclerById : async (req, res) => {
+      try {
+        const { id } = req.params;
+    
+        const recycler = await Recycler.findById(id).select('-password');
+        if (!recycler) {
+          return res.status(404).json({
+            success: false,
+            message: 'Recycler not found'
+          });
+        }
+    
+        const pickups = await RecyclerPickup.find({ recyclerId: id }).sort({ createdAt: -1 });
+    
+        const recyclerDetails = {
+          ...recycler.toObject(),
+          transactions: pickups,
+          totalTransactions: pickups.length,
+          totalAmount: pickups.reduce((sum, pickup) => sum + (pickup.amount || 0), 0)
+        };
+    
+        res.status(200).json({
+          success: true,
+          data: recyclerDetails
+        });
+    
+      } catch (error) {
+        console.error('Error fetching recycler details:', error);
+        res.status(500).json({
+          success: false,
+          message: 'Error fetching recycler details',
+          error: error.message
+        });
+      }
+    },
   // get all users
   getAllUsers: async (req, res) => {
       try {

@@ -1,6 +1,7 @@
 const express = require('express');
 const { body } = require('express-validator');
 const UserController = require('../controllers/UserController');
+// const AdminController = require('../controllers/AdminController');
 const { protect } = require('../middleware/auth');
 
 const router = express.Router();
@@ -34,6 +35,7 @@ router.post('/forgot-password', UserController.forgotPassword);
 router.post('/reset-password', passwordValidation, UserController.resetPassword);
 router.post('/resend-otp', UserController.resendOtp);
 router.get('/recyclers', UserController.getAllRecyclers);
+router.get('/recyclers/:id', UserController.getRecyclerById);
 
 // Protected routes
 router.get('/profile', protect, UserController.getUserProfile);
