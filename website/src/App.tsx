@@ -16,6 +16,8 @@ import PickupManagement from './pages/PickupManagement';
 import EwasteInspection from './pages/EwasteInspection';
 import DocumentUpload from './pages/DocumentUpload';
 import PaymentManagement from './pages/PaymentManagement';
+import PaymentPage from './pages/PaymentPage';
+import PaymentTest from './pages/PaymentTest';
 import MyDeliveryPartners from './pages/MyDeliveryPartners';
 import AddDeliveryPartner from './pages/AddDeliveryPartner';
 import MyTestimonials from './pages/MyTestimonials';
@@ -133,6 +135,8 @@ function App() {
                 <Route path="/ewaste-inspection" element={<EwasteInspection />} />
                 <Route path="/document-upload" element={<DocumentUpload />} />
                 <Route path="/payment-management" element={<PaymentManagement />} />
+                <Route path="/payment" element={<PaymentPage />} />
+                <Route path="/payment-test" element={<PaymentTest />} />
                 <Route path="/my-delivery-partners" element={<MyDeliveryPartners />} />
                 <Route path="/add-delivery-partner" element={<AddDeliveryPartner />} />
                 <Route path="/my-testimonials" element={<MyTestimonials />} />

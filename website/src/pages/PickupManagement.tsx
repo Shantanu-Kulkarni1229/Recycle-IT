@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { pickupAPI } from '../services/completeAPI';
 import { deliveryPartnerAPI, DeliveryPartner } from '../services/deliveryPartnerAPI';
 
@@ -43,6 +44,7 @@ interface Pickup {
 }
 
 const PickupManagement: React.FC = () => {
+  const navigate = useNavigate();
   const [pickups, setPickups] = useState<Pickup[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
@@ -237,6 +239,48 @@ const PickupManagement: React.FC = () => {
       collected: pickups.filter(p => p.pickupStatus === 'Collected').length,
       total: pickups.length
     };
+  };
+
+  // Handle proceed to payment
+  const handleProceedToPayment = (pickup: Pickup) => {
+    // Calculate service fee based on device type and estimated value
+    const baseServiceFee = 100; // Base service fee in rupees
+    let serviceFee = baseServiceFee;
+    
+    // Adjust fee based on device type
+    switch (pickup.deviceType.toLowerCase()) {
+      case 'laptop':
+      case 'computer':
+        serviceFee = 200;
+        break;
+      case 'mobile':
+      case 'smartphone':
+        serviceFee = 150;
+        break;
+      case 'tablet':
+        serviceFee = 175;
+        break;
+      default:
+        serviceFee = 100;
+    }
+
+    const paymentData = {
+      serviceType: 'pickup' as const,
+      amount: serviceFee,
+      deviceInfo: `${pickup.deviceType} - ${pickup.brand} ${pickup.model}`,
+      pickupAddress: `${pickup.pickupAddress}, ${pickup.city}, ${pickup.state} ${pickup.pincode}`,
+      deviceType: pickup.deviceType,
+      description: `E-waste pickup service for ${pickup.deviceType}`,
+      pickupId: pickup._id
+    };
+
+    // Save payment data to localStorage as backup
+    localStorage.setItem('pendingPaymentData', JSON.stringify(paymentData));
+
+    // Navigate to payment page with state
+    navigate('/payment', {
+      state: { paymentData }
+    });
   };
 
   const stats = getStatusStats();
@@ -510,20 +554,30 @@ const PickupManagement: React.FC = () => {
                       <div>Preferred: {formatDate(pickup.preferredPickupDate)}</div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                      <div className="flex space-x-2">
-                        <button
-                          onClick={() => setSelectedPickup(pickup)}
-                          className="text-green-600 hover:text-green-900"
-                        >
-                          View
-                        </button>
-                        {pickup.pickupStatus === 'Pending' && (
+                      <div className="flex flex-col space-y-1">
+                        <div className="flex space-x-2">
                           <button
-                            onClick={() => handleStatusUpdate(pickup._id, 'Scheduled')}
-                            disabled={isUpdating}
-                            className="text-blue-600 hover:text-blue-900 disabled:opacity-50"
+                            onClick={() => setSelectedPickup(pickup)}
+                            className="text-green-600 hover:text-green-900"
                           >
-                            Approve
+                            View
+                          </button>
+                          {pickup.pickupStatus === 'Pending' && (
+                            <button
+                              onClick={() => handleStatusUpdate(pickup._id, 'Scheduled')}
+                              disabled={isUpdating}
+                              className="text-blue-600 hover:text-blue-900 disabled:opacity-50"
+                            >
+                              Approve
+                            </button>
+                          )}
+                        </div>
+                        {(pickup.pickupStatus === 'Scheduled' || pickup.pickupStatus === 'Collected') && (
+                          <button
+                            onClick={() => handleProceedToPayment(pickup)}
+                            className="inline-flex items-center px-3 py-1 bg-orange-600 text-white text-xs font-medium rounded-md hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500"
+                          >
+                            💳 Proceed to Payment
                           </button>
                         )}
                       </div>
@@ -697,13 +751,24 @@ const PickupManagement: React.FC = () => {
                   )}
                   
                   {selectedPickup.pickupStatus === 'Scheduled' && (
-                    <button
-                      onClick={() => handleStatusUpdate(selectedPickup._id, 'In Transit')}
-                      disabled={isUpdating}
-                      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
-                    >
-                      Mark In Transit
-                    </button>
+                    <>
+                      <button
+                        onClick={() => handleStatusUpdate(selectedPickup._id, 'In Transit')}
+                        disabled={isUpdating}
+                        className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+                      >
+                        Mark In Transit
+                      </button>
+                      <button
+                        onClick={() => {
+                          handleProceedToPayment(selectedPickup);
+                          setSelectedPickup(null);
+                        }}
+                        className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700"
+                      >
+                        💳 Proceed to Payment
+                      </button>
+                    </>
                   )}
                   
                   {selectedPickup.pickupStatus === 'In Transit' && (
@@ -713,6 +778,18 @@ const PickupManagement: React.FC = () => {
                       className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50"
                     >
                       Mark Collected
+                    </button>
+                  )}
+
+                  {selectedPickup.pickupStatus === 'Collected' && (
+                    <button
+                      onClick={() => {
+                        handleProceedToPayment(selectedPickup);
+                        setSelectedPickup(null);
+                      }}
+                      className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700"
+                    >
+                      💳 Proceed to Payment
                     </button>
                   )}
                 </div>

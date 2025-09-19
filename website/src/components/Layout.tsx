@@ -42,6 +42,12 @@ const Layout: React.FC<LayoutProps> = ({ onLogout, children }) => {
       description: 'Handle Payments'
     },
     {
+      name: 'Payment Test',
+      path: '/payment-test',
+      icon: '🧪',
+      description: 'Test Payment Integration'
+    },
+    {
       name: 'Document Upload',
       path: '/document-upload',
       icon: '📄',
