@@ -62,8 +62,31 @@ const getAllTestimonials = async (req, res) => {
   }
 };
 
+// @desc    Get testimonials for the authenticated recycler
+// @route   GET /api/testimonials/my-testimonials
+// @access  Recycler (authenticated)
+const getMyTestimonials = async (req, res) => {
+  try {
+    const recyclerId = req.recycler?._id;
+
+    if (!recyclerId) {
+      return res.status(401).json({ message: 'Not authorized, recycler not found' });
+    }
+
+    const testimonials = await Testimonial.find({ recyclerId })
+      .populate('userId', 'name email')
+      .sort({ createdAt: -1 });
+
+    res.status(200).json({ testimonials });
+  } catch (error) {
+    console.error('Error fetching my testimonials:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
 module.exports = {
   addTestimonial,
   getTestimonialsByRecycler,
-  getAllTestimonials
+  getAllTestimonials,
+  getMyTestimonials
 };

@@ -16,6 +16,7 @@ import DocumentUpload from './pages/DocumentUpload';
 import PaymentManagement from './pages/PaymentManagement';
 import MyDeliveryPartners from './pages/MyDeliveryPartners';
 import AddDeliveryPartner from './pages/AddDeliveryPartner';
+import MyTestimonials from './pages/MyTestimonials';
 
 // Utils
 import { isAuthenticated } from './utils/helpers';
@@ -124,6 +125,7 @@ function App() {
                 <Route path="/payment-management" element={<PaymentManagement />} />
                 <Route path="/my-delivery-partners" element={<MyDeliveryPartners />} />
                 <Route path="/add-delivery-partner" element={<AddDeliveryPartner />} />
+                <Route path="/my-testimonials" element={<MyTestimonials />} />
                 <Route path="*" element={<Navigate to="/dashboard" replace />} />
               </Routes>
             </Layout>

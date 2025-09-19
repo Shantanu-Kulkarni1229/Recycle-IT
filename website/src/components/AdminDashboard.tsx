@@ -11,15 +11,17 @@ import {
   Filter
 } from 'lucide-react';
 import { adminApiService } from '../services/adminApi';
+import { testimonialAPI } from '../services/testimonialAPI';
 
 interface AdminDashboardProps {
   onLogout: () => void;
 }
 
 const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
-  const [activeTab, setActiveTab] = useState<'overview' | 'recyclers' | 'transactions'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'recyclers' | 'transactions' | 'testimonials'>('overview');
   const [recyclers, setRecyclers] = useState<any[]>([]);
   const [transactions, setTransactions] = useState<any[]>([]);
+  const [testimonials, setTestimonials] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [adminData, setAdminData] = useState<any>(null);
@@ -34,6 +36,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
     // Load initial data
     loadRecyclers();
     loadTransactions();
+    loadTestimonials();
   }, []);
 
   const loadRecyclers = async () => {
@@ -146,6 +149,20 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
           description: 'PET bottles and containers'
         }
       ]);
+    }
+  };
+
+  const loadTestimonials = async () => {
+    setLoading(true);
+    try {
+      const response = await testimonialAPI.getAllTestimonials();
+      setTestimonials(response.testimonials || []);
+    } catch (error) {
+      console.error('Error loading testimonials:', error);
+      // Fallback to empty array
+      setTestimonials([]);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -430,6 +447,149 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
     </div>
   );
 
+  const renderTestimonials = () => {
+    const renderStars = (rating: number) => {
+      return Array.from({ length: 5 }, (_, index) => (
+        <svg
+          key={index}
+          className={`w-4 h-4 ${index < rating ? 'text-yellow-400' : 'text-gray-300'}`}
+          fill="currentColor"
+          viewBox="0 0 20 20"
+        >
+          <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+        </svg>
+      ));
+    };
+
+    const averageRating = testimonials.length > 0 
+      ? testimonials.reduce((sum, t) => sum + t.rating, 0) / testimonials.length 
+      : 0;
+
+    return (
+      <div className="space-y-6">
+        {/* Stats */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="bg-white rounded-lg shadow p-6">
+            <div className="flex items-center">
+              <div className="p-3 rounded-full bg-blue-100">
+                <svg className="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-1l-4 4z" />
+                </svg>
+              </div>
+              <div className="ml-4">
+                <p className="text-sm font-medium text-gray-500">Total Testimonials</p>
+                <p className="text-2xl font-bold text-gray-900">{testimonials.length}</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-lg shadow p-6">
+            <div className="flex items-center">
+              <div className="p-3 rounded-full bg-yellow-100">
+                <svg className="w-8 h-8 text-yellow-600" fill="currentColor" viewBox="0 0 20 20">
+                  <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                </svg>
+              </div>
+              <div className="ml-4">
+                <p className="text-sm font-medium text-gray-500">Average Rating</p>
+                <p className="text-2xl font-bold text-gray-900">{averageRating.toFixed(1)}</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-lg shadow p-6">
+            <div className="flex items-center">
+              <div className="p-3 rounded-full bg-green-100">
+                <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h1m4 0h1m-6 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <div className="ml-4">
+                <p className="text-sm font-medium text-gray-500">5-Star Reviews</p>
+                <p className="text-2xl font-bold text-gray-900">{testimonials.filter(t => t.rating === 5).length}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Testimonials Table */}
+        <div className="bg-white shadow rounded-lg">
+          <div className="px-4 py-5 sm:p-6">
+            <h3 className="text-lg leading-6 font-medium text-gray-900 mb-4">All Testimonials</h3>
+            {testimonials.length === 0 ? (
+              <div className="text-center py-12">
+                <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-1l-4 4z" />
+                </svg>
+                <h3 className="mt-2 text-sm font-medium text-gray-900">No testimonials</h3>
+                <p className="mt-1 text-sm text-gray-500">No customer feedback has been received yet.</p>
+              </div>
+            ) : (
+              <div className="overflow-hidden shadow ring-1 ring-black ring-opacity-5 rounded-lg">
+                <table className="min-w-full divide-y divide-gray-300">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Customer
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Recycler
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Rating
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Feedback
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Date
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {testimonials.map((testimonial: any) => (
+                      <tr key={testimonial._id} className="hover:bg-gray-50">
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="flex items-center">
+                            <div className="w-8 h-8 bg-gradient-to-r from-blue-400 to-purple-500 rounded-full flex items-center justify-center text-white font-semibold text-sm">
+                              {testimonial.userId?.name?.charAt(0)?.toUpperCase() || 'U'}
+                            </div>
+                            <div className="ml-3">
+                              <div className="text-sm font-medium text-gray-900">{testimonial.userId?.name || 'Unknown User'}</div>
+                              <div className="text-sm text-gray-500">{testimonial.userId?.email || 'No email'}</div>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm font-medium text-gray-900">
+                            {testimonial.recyclerId?.companyName || testimonial.recyclerId?.ownerName || 'Unknown'}
+                          </div>
+                          <div className="text-sm text-gray-500">{testimonial.recyclerId?.email || 'No email'}</div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="flex items-center">
+                            {renderStars(testimonial.rating)}
+                            <span className="ml-2 text-sm text-gray-600">({testimonial.rating})</span>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="text-sm text-gray-900 max-w-xs truncate">{testimonial.feedback}</div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {new Date(testimonial.createdAt).toLocaleDateString()}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="min-h-screen bg-gray-100">
       {/* Header */}
@@ -442,10 +602,10 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
             </div>
             
             <div className="flex items-center space-x-4">
-              <button className="p-2 text-gray-400 hover:text-gray-600">
+              <button className="p-2 text-gray-400 hover:text-gray-600" title="Notifications">
                 <Bell className="h-6 w-6" />
               </button>
-              <button className="p-2 text-gray-400 hover:text-gray-600">
+              <button type="button" className="p-2 text-gray-400 hover:text-gray-600" title="Settings">
                 <Settings className="h-6 w-6" />
               </button>
               <button
@@ -497,6 +657,19 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
               <FileText className="h-5 w-5 inline-block mr-2" />
               Transactions
             </button>
+            <button
+              onClick={() => setActiveTab('testimonials')}
+              className={`py-4 px-1 border-b-2 font-medium text-sm ${
+                activeTab === 'testimonials'
+                  ? 'border-blue-500 text-blue-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              <svg className="h-5 w-5 inline-block mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-1l-4 4z" />
+              </svg>
+              Testimonials
+            </button>
           </nav>
         </div>
       </div>
@@ -512,6 +685,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
             {activeTab === 'overview' && renderOverview()}
             {activeTab === 'recyclers' && renderRecyclers()}
             {activeTab === 'transactions' && renderTransactions()}
+            {activeTab === 'testimonials' && renderTestimonials()}
           </>
         )}
       </main>

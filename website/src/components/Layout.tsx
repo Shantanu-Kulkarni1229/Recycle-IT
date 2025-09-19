@@ -48,6 +48,12 @@ const Layout: React.FC<LayoutProps> = ({ onLogout, children }) => {
       description: 'Upload Verification Docs'
     },
     {
+      name: 'Testimonials & Ratings',
+      path: '/my-testimonials',
+      icon: '⭐',
+      description: 'Customer Feedback'
+    },
+    {
       name: 'Profile',
       path: '/profile',
       icon: '👤',
