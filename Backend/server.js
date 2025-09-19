@@ -10,6 +10,7 @@ const recyclerRoutes = require('./routes/recyclerRoutes');
 const schedulePickupRoutes = require('./routes/schedulePickupRoutes');
 const recyclerPickupRoutes = require("./routes/recyclerPickupRoutes");
 const adminRoutes = require('./routes/adminRoutes');
+const testimonialRoutes = require('./routes/testimonialRoutes');
 
 const app = express();
 
@@ -24,7 +25,7 @@ app.use('/api/users', userRoutes);
 app.use('/api/recyclers', recyclerRoutes);
 app.use('/api/schedule-pickup', schedulePickupRoutes);
 app.use('/api/admin', adminRoutes);
-
+app.use('/api/testimonials', testimonialRoutes);
 // Error handling middleware (Enhanced for file upload errors)
 app.use((err, req, res, next) => {
   console.error(err.stack);
