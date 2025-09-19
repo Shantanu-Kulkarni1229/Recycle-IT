@@ -50,6 +50,8 @@ const RecyclerController = {
     }
   },
 
+  // sign/agree aggrement 
+
    getUnApprovedPickups: async (req, res) => {
     try {
       const approvedPickups = await SchedulePickup.find({ 
@@ -75,6 +77,33 @@ const RecyclerController = {
       });
     }
   },
+  // aggreement signed
+  aggreementSigned: async (req, res) => {
+    try {
+      const { id } = req.params;
+      const recycler = await Recycler.findById(id);
+      if (!recycler) {
+        return res.status(404).json({
+          success: false,
+          message: 'Recycler not found'
+        });
+      }
+      recycler.aggreementSigned = true;
+      await recycler.save();
+      res.status(200).json({
+        success: true,
+        message: 'Terms and conditions accepted successfully'
+      });
+    } catch (error) {
+      console.error('Error accepting terms and conditions:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to accept terms and conditions',
+        error: error.message
+      });
+    }
+  },
+
   // Register new recycler
   registerRecycler: async (req, res) => {
     try {
@@ -92,7 +121,8 @@ const RecyclerController = {
           message: 'Recycler already exists with this email or company name'
         });
       }
-
+      
+      
       const recycler = new Recycler({
         ownerName,
         companyName,
@@ -104,6 +134,15 @@ const RecyclerController = {
         state,
         pincode
       });
+
+      // sign/aggre to the aggrement
+      if(recycler.aggreementSigned !== true){
+        return res.status(400).json({
+          success: false,
+          recycler:{id: recycler._id},
+          message: 'Please agree to the terms and conditions to proceed'
+        });
+      }
 
       if (req.files && req.files.length > 0) {
         const documents = req.files.map(file => ({

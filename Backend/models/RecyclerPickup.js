@@ -42,7 +42,7 @@ const recyclerPickupSchema = new mongoose.Schema(
       enum: ["Pending", "Approved", "Paid", "Rejected"],
       default: "Pending",
     },
-
+    aggreementSigned: { type: Boolean, default: false },
     inspectionNotes: { type: String },
     
     // NEW: Add inspection report document field
