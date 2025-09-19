@@ -24,7 +24,17 @@ const Profile: React.FC = () => {
       console.error('Profile loading error:', err);
       setError('Failed to load profile data');
       // Use local data as fallback
-      const localData = JSON.parse(localStorage.getItem('recyclerData') || '{}');
+      const getRecyclerData = () => {
+        try {
+          const data = localStorage.getItem('recyclerData');
+          return data ? JSON.parse(data) : {};
+        } catch (error) {
+          console.error('Error parsing recycler data:', error);
+          return {};
+        }
+      };
+      
+      const localData = getRecyclerData();
       setProfileData(localData);
     } finally {
       setIsLoading(false);

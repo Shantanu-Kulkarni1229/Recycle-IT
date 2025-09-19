@@ -53,7 +53,17 @@ const Layout: React.FC<LayoutProps> = ({ onLogout, children }) => {
     return location.pathname === path || (path === '/dashboard' && location.pathname === '/');
   };
 
-  const recyclerData = JSON.parse(localStorage.getItem('recyclerData') || '{}');
+  const getRecyclerData = () => {
+    try {
+      const data = localStorage.getItem('recyclerData');
+      return data ? JSON.parse(data) : {};
+    } catch (error) {
+      console.error('Error parsing recycler data:', error);
+      return {};
+    }
+  };
+
+  const recyclerData = getRecyclerData();
 
   return (
     <div className="min-h-screen bg-gray-50">

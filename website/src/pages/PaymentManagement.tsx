@@ -25,7 +25,17 @@ const PaymentManagement: React.FC = () => {
     notes: ''
   });
 
-  const recyclerData = JSON.parse(localStorage.getItem('recyclerData') || '{}');
+  const getRecyclerData = () => {
+    try {
+      const data = localStorage.getItem('recyclerData');
+      return data ? JSON.parse(data) : {};
+    } catch (error) {
+      console.error('Error parsing recycler data:', error);
+      return {};
+    }
+  };
+
+  const recyclerData = getRecyclerData();
 
   useEffect(() => {
     const loadPayments = async () => {

@@ -11,7 +11,7 @@ const RecyclerSignUp: React.FC<RecyclerSignUpProps> = ({ onSignUp, onBackToLogin
   const [formData, setFormData] = useState({
     ownerName: '',
     email: '',
-    phone: '',
+    phoneNumber: '',
     password: '',
     confirmPassword: '',
     companyName: '',
@@ -38,9 +38,9 @@ const RecyclerSignUp: React.FC<RecyclerSignUpProps> = ({ onSignUp, onBackToLogin
   };
 
   const validateStep1 = () => {
-    const { ownerName, email, phone, password, confirmPassword } = formData;
+    const { ownerName, email, phoneNumber, password, confirmPassword } = formData;
     
-    if (!ownerName || !email || !phone || !password || !confirmPassword) {
+    if (!ownerName || !email || !phoneNumber || !password || !confirmPassword) {
       setError('Please fill in all required fields');
       return false;
     }
@@ -162,7 +162,7 @@ const RecyclerSignUp: React.FC<RecyclerSignUpProps> = ({ onSignUp, onBackToLogin
 
       {/* Phone */}
       <div>
-        <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-2">
+        <label htmlFor="phoneNumber" className="block text-sm font-medium text-gray-700 mb-2">
           Phone Number *
         </label>
         <div className="relative">
@@ -170,10 +170,10 @@ const RecyclerSignUp: React.FC<RecyclerSignUpProps> = ({ onSignUp, onBackToLogin
             <Phone className="h-5 w-5 text-gray-400" />
           </div>
           <input
-            id="phone"
-            name="phone"
+            id="phoneNumber"
+            name="phoneNumber"
             type="tel"
-            value={formData.phone}
+            value={formData.phoneNumber}
             onChange={handleChange}
             className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
             placeholder="Enter your phone number"
