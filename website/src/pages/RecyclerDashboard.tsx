@@ -10,12 +10,18 @@ interface EwasteItem {
   condition: string;
   pickupAddress: string;
   city: string;
-  preferredPickupDate: string;
+  state: string;
+  pincode: string;
   pickupStatus: string;
+  preferredPickupDate: string;
+  weight: number;
+  notes: string;
+  formattedAddress: string;
   userId: {
     name: string;
     phoneNumber: string;
-  };
+    email: string;
+  } | null;
 }
 
 const RecyclerDashboard: React.FC = () => {
@@ -43,11 +49,16 @@ const RecyclerDashboard: React.FC = () => {
         setRecyclerProfile(recyclerData);
       }
 
-      // Load assigned e-waste items from backend
+      // Load available pending pickups (not yet assigned)
       try {
-        const assignedResponse = await pickupAPI.getAssignedEwaste();
-        if (assignedResponse.data.success) {
-          const items = assignedResponse.data.data;
+        console.log('Loading pending pickups...');
+        const pendingResponse = await pickupAPI.getRecyclerPickups(''); // This calls unapproved-device endpoint
+        console.log('Pending pickups response:', pendingResponse.data);
+        
+        if (pendingResponse.data.success) {
+          const items = pendingResponse.data.pickups || [];
+          console.log('Number of items received:', items.length);
+          console.log('Items:', items);
           setAssignedEwaste(items);
           
           // Calculate stats
@@ -60,12 +71,17 @@ const RecyclerDashboard: React.FC = () => {
             ['Delivered', 'Verified'].includes(item.pickupStatus)
           ).length;
           
+          console.log('Stats calculated:', { totalAssigned, pending, inProgress, completed });
           setStats({ totalAssigned, pending, inProgress, completed });
+        } else {
+          console.error('Failed to load pending pickups:', pendingResponse.data.message);
+          setAssignedEwaste([]);
         }
       } catch (error) {
-        console.error('Error loading assigned e-waste:', error);
+        console.error('Error loading pending pickups:', error);
         // Set mock data for demonstration
         setStats({ totalAssigned: 15, pending: 5, inProgress: 7, completed: 3 });
+        setAssignedEwaste([]);
       }
 
     } catch (error) {
@@ -86,6 +102,33 @@ const RecyclerDashboard: React.FC = () => {
       loadDashboardData();
     } catch (error) {
       console.error('Error updating inspection status:', error);
+    }
+  };
+
+  const handleAssignTestPickups = async () => {
+    try {
+      const response = await authAPI.assignTestPickups();
+      if (response.data.success) {
+        alert(`${response.data.count} pickups assigned! Refreshing dashboard...`);
+        loadDashboardData(); // Reload data
+      }
+    } catch (error) {
+      console.error('Error assigning test pickups:', error);
+      alert('Failed to assign test pickups');
+    }
+  };
+
+  const handleAcceptPickup = async (pickupId: string) => {
+    try {
+      // For now, just update the status to Scheduled
+      const response = await pickupAPI.updatePickupStatus(pickupId, 'Scheduled');
+      if (response.data.success) {
+        alert('Pickup accepted successfully!');
+        loadDashboardData(); // Reload data
+      }
+    } catch (error) {
+      console.error('Error accepting pickup:', error);
+      alert('Failed to accept pickup');
     }
   };
 
@@ -128,13 +171,13 @@ const RecyclerDashboard: React.FC = () => {
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         <StatCard
-          title="Total Assigned"
+          title="Available Pickups"
           value={stats.totalAssigned}
           icon="📦"
           color="bg-blue-100"
         />
         <StatCard
-          title="Pending Pickups"
+          title="Pending Approval"
           value={stats.pending}
           icon="⏳"
           color="bg-yellow-100"
@@ -153,11 +196,11 @@ const RecyclerDashboard: React.FC = () => {
         />
       </div>
 
-      {/* Assigned E-waste Items */}
+      {/* Available Pickups */}
       <div className="bg-white rounded-xl shadow-md border border-gray-100">
         <div className="p-6 border-b border-gray-200">
-          <h3 className="text-lg font-semibold text-gray-800">Assigned E-waste Items</h3>
-          <p className="text-sm text-gray-600">Manage your pickup assignments</p>
+          <h3 className="text-lg font-semibold text-gray-800">Available E-waste Pickups</h3>
+          <p className="text-sm text-gray-600">Devices available for pickup and recycling</p>
         </div>
         
         <div className="p-6">
@@ -174,14 +217,21 @@ const RecyclerDashboard: React.FC = () => {
                         {item.deviceType} • Condition: {item.condition}
                       </p>
                       <p className="text-sm text-gray-500 mt-1">
-                        📍 {item.pickupAddress}, {item.city}
+                        📍 {item.formattedAddress || `${item.pickupAddress}, ${item.city}`}
                       </p>
                       <p className="text-sm text-gray-500">
                         📅 Preferred: {formatDate(item.preferredPickupDate)}
                       </p>
-                      {item.userId && (
+                      <p className="text-sm text-gray-500">
+                        ⚖️ Weight: {item.weight}kg
+                      </p>
+                      {item.userId ? (
                         <p className="text-sm text-gray-500">
                           👤 Contact: {item.userId.name} ({item.userId.phoneNumber})
+                        </p>
+                      ) : (
+                        <p className="text-sm text-gray-500">
+                          👤 Contact: No user information available
                         </p>
                       )}
                     </div>
@@ -190,6 +240,15 @@ const RecyclerDashboard: React.FC = () => {
                       <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(item.pickupStatus)}`}>
                         {item.pickupStatus}
                       </span>
+                      
+                      {item.pickupStatus === 'Pending' && (
+                        <button
+                          onClick={() => handleAcceptPickup(item._id)}
+                          className="px-3 py-1 bg-green-600 text-white text-xs rounded-md hover:bg-green-700 transition-colors mr-2"
+                        >
+                          Accept Pickup
+                        </button>
+                      )}
                       
                       {item.pickupStatus === 'Pending' && (
                         <button
@@ -218,6 +277,12 @@ const RecyclerDashboard: React.FC = () => {
               <div className="text-6xl mb-4">📭</div>
               <h3 className="text-lg font-medium text-gray-900 mb-2">No Assigned E-waste</h3>
               <p className="text-gray-600">No e-waste items have been assigned to you yet.</p>
+              <button
+                onClick={handleAssignTestPickups}
+                className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                🧪 Assign Test Pickups (Development)
+              </button>
             </div>
           )}
         </div>

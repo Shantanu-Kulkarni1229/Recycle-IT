@@ -93,6 +93,7 @@ router.post(
 );
 router.get('/assigned-ewaste', protect, RecyclerController.getAssignedEwaste);
 router.put('/inspection-status', protect, RecyclerController.updateInspectionStatus);
+router.post('/assign-test-pickups', protect, RecyclerController.assignTestPickups);
 router.delete('/delete', protect, RecyclerController.deleteRecycler);
 
 // Admin routes
