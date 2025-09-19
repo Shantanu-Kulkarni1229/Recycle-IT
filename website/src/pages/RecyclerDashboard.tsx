@@ -201,6 +201,14 @@ const RecyclerDashboard: React.FC = () => {
         <div className="p-6 border-b border-gray-200">
           <h3 className="text-lg font-semibold text-gray-800">Available E-waste Pickups</h3>
           <p className="text-sm text-gray-600">Devices available for pickup and recycling</p>
+            <button
+                className="px-4 py-2 bg-green-600 text-white text-sm font-semibold rounded-md hover:bg-green-700 transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-green-400"
+                style={{ float: 'right', marginTop: '-8px' }}
+                onClick={loadDashboardData}
+                title="Refresh pickups"
+              >
+                Refresh
+              </button>
         </div>
         
         <div className="p-6">
