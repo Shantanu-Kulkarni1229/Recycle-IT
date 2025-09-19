@@ -5,6 +5,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import Login from './components/Login';
 import RecyclerSignUp from './components/RecyclerSignUp';
 import Layout from './components/Layout';
+import AdminApp from './components/AdminApp';
 
 // Pages
 import Dashboard from './pages/Dashboard';
@@ -24,8 +25,14 @@ function App() {
   const [showSignUp, setShowSignUp] = useState(false);
 
   useEffect(() => {
-    // Check if user is already authenticated
+    // Check if user is already authenticated (only for recycler routes)
     const checkAuth = () => {
+      // Don't check recycler auth if we're on admin route
+      if (window.location.pathname.startsWith('/admin')) {
+        setIsLoading(false);
+        return;
+      }
+      
       const authenticated = isAuthenticated();
       setIsLoggedIn(authenticated);
       setIsLoading(false);
@@ -69,38 +76,56 @@ function App() {
     );
   }
 
-  if (!isLoggedIn) {
-    if (showSignUp) {
-      return (
-        <RecyclerSignUp 
-          onSignUp={handleSignUpSuccess} 
-          onBackToLogin={handleBackToLogin}
-        />
-      );
-    }
-    
-    return (
-      <Login 
-        onLogin={handleLogin} 
-        onSignUp={handleShowSignUp}
-      />
-    );
-  }
-
   return (
     <Router>
-      <Layout onLogout={handleLogout}>
-        <Routes>
-          <Route path="/" element={<Dashboard />} />
-          <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/profile" element={<Profile />} />
-          <Route path="/pickup-management" element={<PickupManagement />} />
-          <Route path="/ewaste-inspection" element={<EwasteInspection />} />
-          <Route path="/document-upload" element={<DocumentUpload />} />
-          <Route path="/payment-management" element={<PaymentManagement />} />
-          <Route path="*" element={<Navigate to="/dashboard" replace />} />
-        </Routes>
-      </Layout>
+      <Routes>
+        {/* Admin Routes - completely independent, highest priority */}
+        <Route path="/admin" element={<AdminApp />} />
+        <Route path="/admin/*" element={<AdminApp />} />
+        
+        {/* Recycler Login/Signup Routes */}
+        {!isLoggedIn && (
+          <>
+            <Route path="/signup" element={
+              <RecyclerSignUp 
+                onSignUp={handleSignUpSuccess} 
+                onBackToLogin={handleBackToLogin}
+              />
+            } />
+            <Route path="/*" element={
+              showSignUp ? (
+                <RecyclerSignUp 
+                  onSignUp={handleSignUpSuccess} 
+                  onBackToLogin={handleBackToLogin}
+                />
+              ) : (
+                <Login 
+                  onLogin={handleLogin} 
+                  onSignUp={handleShowSignUp}
+                />
+              )
+            } />
+          </>
+        )}
+        
+        {/* Recycler Dashboard Routes - only when logged in */}
+        {isLoggedIn && (
+          <Route path="/*" element={
+            <Layout onLogout={handleLogout}>
+              <Routes>
+                <Route path="/" element={<Dashboard />} />
+                <Route path="/dashboard" element={<Dashboard />} />
+                <Route path="/profile" element={<Profile />} />
+                <Route path="/pickup-management" element={<PickupManagement />} />
+                <Route path="/ewaste-inspection" element={<EwasteInspection />} />
+                <Route path="/document-upload" element={<DocumentUpload />} />
+                <Route path="/payment-management" element={<PaymentManagement />} />
+                <Route path="*" element={<Navigate to="/dashboard" replace />} />
+              </Routes>
+            </Layout>
+          } />
+        )}
+      </Routes>
     </Router>
   );
 }

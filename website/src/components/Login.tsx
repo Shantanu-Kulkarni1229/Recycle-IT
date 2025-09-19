@@ -209,6 +209,23 @@ const Login: React.FC<LoginProps> = ({ onLogin, onSignUp }) => {
                 </button>
               </div>
             )}
+
+            {/* Admin Portal Link */}
+            <div className="pt-4 border-t border-gray-200">
+              <p className="text-gray-600 text-sm mb-3">
+                Administrator Access
+              </p>
+              <button
+                type="button"
+                onClick={() => window.location.href = '/admin'}
+                className="w-full py-3 px-4 border-2 border-blue-600 text-blue-600 font-medium rounded-xl hover:bg-blue-50 transition-all duration-200"
+              >
+                <div className="flex items-center justify-center">
+                  <span className="mr-2">🔐</span>
+                  Admin Portal
+                </div>
+              </button>
+            </div>
           </div>
         </div>
       </div>
