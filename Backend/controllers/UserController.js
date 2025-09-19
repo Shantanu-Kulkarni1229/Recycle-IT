@@ -1,9 +1,55 @@
 const User = require('../models/User');
+const Recycler = require('../models/Recycler');
+const RecyclerPickup = require('../models/RecyclerPickup');
 const { generateToken } = require('../middleware/auth');
 const { sendOTPEmail } = require('../utils/emailService');
 const { validationResult } = require('express-validator');
 
 const UserController = {
+  // get all recyclers
+  getAllRecyclers:  async (req, res) => {
+    try {
+      const recyclers = await Recycler.find({})
+        .select('-password') // Exclude password field
+        .sort({ createdAt: -1 });
+      const recyclersWithStats = await Promise.all(
+        recyclers.map(async (recycler) => {
+          const pickups = await RecyclerPickup.find({ recyclerId: recycler._id });
+  
+          return {
+            id: recycler._id,
+            ownerName: recycler.ownerName,
+            companyName: recycler.companyName,
+            email: recycler.email,
+            phoneNumber: recycler.phoneNumber,
+            city: recycler.city,
+            state: recycler.state,
+            address: recycler.address,
+            pincode: recycler.pincode,
+            servicesOffered: recycler.servicesOffered,
+            operatingHours: recycler.operatingHours,
+            website: recycler.website,
+            description: recycler.description
+          };
+        })
+      );
+  
+      res.status(200).json({
+        success: true,
+        data: recyclersWithStats,
+        total: recyclersWithStats.length
+      });
+  
+    } catch (error) {
+      console.error('Error fetching recyclers:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Error fetching recyclers',
+        error: error.message
+      });
+    }
+  },
+  // get all users
   getAllUsers: async (req, res) => {
       try {
         const verifiedUsers = await SchedulePickup.find({ 

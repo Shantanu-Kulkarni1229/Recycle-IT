@@ -33,6 +33,7 @@ router.post('/login', UserController.loginUser);
 router.post('/forgot-password', UserController.forgotPassword);
 router.post('/reset-password', passwordValidation, UserController.resetPassword);
 router.post('/resend-otp', UserController.resendOtp);
+router.get('/recyclers', UserController.getAllRecyclers);
 
 // Protected routes
 router.get('/profile', protect, UserController.getUserProfile);
