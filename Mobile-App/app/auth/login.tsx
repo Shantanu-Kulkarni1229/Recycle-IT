@@ -10,7 +10,8 @@ import {
   KeyboardAvoidingView,
   Platform,
   ActivityIndicator,
-  StatusBar
+  StatusBar,
+  Image
 } from "react-native";
 import { useRouter } from "expo-router";
 import api from "../../api/api";
@@ -70,12 +71,16 @@ const Login: React.FC = () => {
             <View className="items-center">
               
               {/* App Logo */}
-              <View className="bg-white rounded-2xl p-5 mb-6 shadow-sm">
-                <Text className="text-4xl">🌍</Text>
+              <View className="bg-white rounded-full   mb-6 shadow-sm">
+                <Image 
+                  source={require('../../assets/images/Logo.png')}
+                  className="w-36 h-36"
+                  resizeMode="contain"
+                />
               </View>
               
               <Text className="text-3xl font-bold text-white mb-3">
-                Welcome Back
+                Welcome
               </Text>
               <Text className="text-green-100 text-center text-base opacity-90 leading-6">
                 Continue your journey to make{'\n'}our planet greener
@@ -223,7 +228,7 @@ const Login: React.FC = () => {
                 </Text>
               </View>
               <Text className="text-xs text-gray-500 mt-3 text-center">
-                Together, we're building a sustainable future
+                Together, we&apos;re building a sustainable future
               </Text>
             </View>
 
