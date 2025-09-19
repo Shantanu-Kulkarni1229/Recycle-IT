@@ -73,7 +73,7 @@ const schedulePickupSchema = new mongoose.Schema(
     documents: [{
       url: {
         type: String,
-        required: true
+        // required: true
       },
       publicId: {
         type: String,

@@ -1,6 +1,7 @@
 const RecyclerPickup = require("../models/RecyclerPickup");
 const SchedulePickup = require("../models/SchedulePickup");
 const cloudinary = require('../config/cloudinary');
+const User = require("../models/User");
 
 // 1. Confirm Device Received (UNCHANGED)
 exports.confirmReceived = async (req, res) => {
@@ -13,8 +14,16 @@ exports.confirmReceived = async (req, res) => {
     pickup.inspectionStatus = "Pending";
     await pickup.save();
 
+    const RecyclerPickup = new RecyclerPickup({
+            pickupId: pickup._id,
+            UserId: pickup.userId,
+            inspectionStatus: "Under Inspection"
+          });
+
+    await RecyclerPickup.save();
+
     // Optionally update SchedulePickup status too
-    await SchedulePickup.findByIdAndUpdate(pickup.id, { pickupStatus: "Approved" });
+    await SchedulePickup.findByIdAndUpdate(pickup.id, { pickupStatus: "Verified" });
     await pickup.save();
 
     res.json({ success: true, message: "Device received at recycler center", data: pickup });

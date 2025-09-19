@@ -1,9 +1,36 @@
 const Recycler = require('../models/Recycler');
+// const User = require('../models/User');
+const SchedulePickup = require('../models/SchedulePickup');
 const { generateToken } = require('../middleware/auth');
 const { sendOTPEmail } = require('../utils/emailService');
 const { validationResult } = require('express-validator');
 
 const RecyclerController = {
+   getUnApprovedPickups: async (req, res) => {
+    try {
+      const approvedPickups = await SchedulePickup.find({ 
+        pickupStatus: 'Pending' 
+      })
+      .populate('userId', 'name email phoneNumber address')
+      .sort({ scheduledDate: 1 });
+
+      res.status(200).json({
+        success: true,
+        message: 'UnApproved pickups retrieved successfully',
+        count: approvedPickups.length,
+        pickups: approvedPickups
+      });
+
+    } catch (error) {
+      console.error('Error fetching approved pickups:', error);
+      
+      res.status(500).json({
+        success: false,
+        message: 'Failed to fetch approved pickups',
+        error: error.message
+      });
+    }
+  },
   // Register new recycler
   registerRecycler: async (req, res) => {
     try {

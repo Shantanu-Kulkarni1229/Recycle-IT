@@ -12,7 +12,7 @@ router.post("/:id/reject", recyclerPickupController.rejectDevice);
 router.get("/recycler/:recyclerId", recyclerPickupController.getRecyclerPickups);
 
 // ENHANCED routes with Cloudinary support
-router.put("/:id/inspect", 
+router.put("/:id/inspect",
   uploadToCloudinary.fields([
     { name: 'inspectionImages', maxCount: 5 },
     { name: 'damageImages', maxCount: 5 }
