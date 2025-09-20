@@ -27,6 +27,7 @@ const deliveryPartnerRoutes = require('./routes/deliveryPartnerRoutes');
 const adminRoutes = require('./routes/adminRoutes');
 const testimonialRoutes = require('./routes/testimonialRoutes');
 const paymentRoutes = require('./routes/paymentRoutes');
+const blockchainRoutes = require('./routes/blockchainRoutes');
 
 const app = express();
 
@@ -49,6 +50,8 @@ app.use(express.urlencoded({ extended: true }));
 // Raw body middleware specifically for webhook signature verification
 // This must come BEFORE the payment routes
 app.use('/api/payments/webhook', express.raw({ type: 'application/json' }));
+
+app.use('/api/blockchain', blockchainRoutes);
 
 // Routes with specific rate limiting
 app.use('/api/payments', paymentLimiter, paymentRoutes);

@@ -1,6 +1,7 @@
 const RecyclerPickup = require("../models/RecyclerPickup");
 const SchedulePickup = require("../models/SchedulePickup");
 const cloudinary = require('../config/cloudinary');
+const saveUrlToBlockchain = require("../utils/blockchainUtils");
 const User = require("../models/User");
 
 // 1. Confirm Device Received (UNCHANGED)
@@ -25,6 +26,7 @@ exports.confirmReceived = async (req, res) => {
     // Optionally update SchedulePickup status too
     await SchedulePickup.findByIdAndUpdate(pickup.id, { pickupStatus: "Verified" });
     await pickup.save();
+
 
     res.json({ success: true, message: "Device approved! and pickup is scheduled", data: pickup });
   } catch (error) {
@@ -68,7 +70,23 @@ exports.inspectDevice = async (req, res) => {
       updateData["deviceConditionReport.damageImages"] = damageImages;
     }
 
+
     const pickup = await RecyclerPickup.findByIdAndUpdate(id, updateData, { new: true });
+
+    // inspection array
+    const allInspectionImages = pickup.deviceConditionReport.inspectionImages;
+        if (inspectionImages.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Inspection images array is empty"
+      });
+    }
+    // add to blockchain network
+    const blockchainRecords = [];
+    for (const imageUrl of allInspectionImages) {
+      const record = await saveUrlToBlockchain(pickup._id, imageUrl);
+      blockchainRecords.push(record);
+    }
 
     if (!pickup) return res.status(404).json({ success: false, message: "Pickup not found" });
 
