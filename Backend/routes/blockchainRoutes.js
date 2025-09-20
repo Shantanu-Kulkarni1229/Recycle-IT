@@ -2,7 +2,6 @@ const express = require('express');
 const router = express.Router();
 const BlockchainRecord = require('../models/BlockchainRecord');
 
-// POST /api/blockchain-records/dummy - create a dummy blockchain record
 router.post('/dummy', async (req, res) => {
   try {
     const lastBlock = await BlockchainRecord.findOne().sort({ timestamp: -1 });
