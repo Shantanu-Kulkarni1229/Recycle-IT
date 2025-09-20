@@ -16,13 +16,16 @@ const Profile: React.FC = () => {
   const loadProfile = async () => {
     try {
       setIsLoading(true);
+      setError('');
       const response = await profileAPI.getProfile();
       if (response.success) {
         setProfileData(response.recycler);
+      } else {
+        throw new Error('API response unsuccessful');
       }
     } catch (err: any) {
       console.error('Profile loading error:', err);
-      setError('Failed to load profile data');
+      setError('Failed to load profile data. Showing offline data.');
       // Use local data as fallback
       const getRecyclerData = () => {
         try {
@@ -33,7 +36,6 @@ const Profile: React.FC = () => {
           return {};
         }
       };
-      
       const localData = getRecyclerData();
       setProfileData(localData);
     } finally {
@@ -118,8 +120,19 @@ const Profile: React.FC = () => {
       </div>
 
       {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
-          {error}
+        <div className="bg-red-100 border border-red-300 text-red-800 px-4 py-4 rounded-lg flex items-center justify-between">
+          <span>
+            {error}
+            {error.includes('offline') && (
+              <span className="block text-xs text-gray-600 mt-1">You are viewing offline profile data. Some features may be unavailable.</span>
+            )}
+          </span>
+          <button
+            onClick={loadProfile}
+            className="ml-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+          >
+            Retry
+          </button>
         </div>
       )}
 

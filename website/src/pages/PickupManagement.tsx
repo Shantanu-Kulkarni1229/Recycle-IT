@@ -246,25 +246,25 @@ const PickupManagement: React.FC = () => {
   // Handle proceed to payment
   const handleProceedToPayment = (pickup: Pickup) => {
     // Calculate service fee based on device type and estimated value
-    const baseServiceFee = 100; // Base service fee in rupees
-    let serviceFee = baseServiceFee;
+      const baseServiceFee = 1000; // Base service fee in rupees
+      let serviceFee = baseServiceFee;
     
-    // Adjust fee based on device type
-    switch (pickup.deviceType.toLowerCase()) {
-      case 'laptop':
-      case 'computer':
-        serviceFee = 200;
-        break;
-      case 'mobile':
-      case 'smartphone':
-        serviceFee = 150;
-        break;
-      case 'tablet':
-        serviceFee = 175;
-        break;
-      default:
-        serviceFee = 100;
-    }
+      // Adjust fee based on device type
+      switch (pickup.deviceType.toLowerCase()) {
+        case 'laptop':
+        case 'computer':
+          serviceFee = 2000;
+          break;
+        case 'mobile':
+        case 'smartphone':
+          serviceFee = 1500;
+          break;
+        case 'tablet':
+          serviceFee = 1750;
+          break;
+        default:
+          serviceFee = 1000;
+      }
 
     const paymentData = {
       serviceType: 'pickup' as const,
