@@ -118,6 +118,8 @@ const PickupManagement: React.FC = () => {
           break;
         case 'Collected':
           successMessage = '📦 Device collection confirmed! User has been thanked for recycling.';
+          // Dispatch event to refresh EwasteInspection page
+          window.dispatchEvent(new Event('pickup-collected'));
           break;
         case 'Delivered':
           successMessage = '✅ Delivery to facility confirmed! User has been updated.';
@@ -131,7 +133,7 @@ const PickupManagement: React.FC = () => {
         default:
           successMessage = `✅ Status updated to ${newStatus}! User notification sent.`;
       }
-      
+
       alert(successMessage);
       setSelectedPickup(null);
     } catch (error) {
@@ -491,6 +493,19 @@ const PickupManagement: React.FC = () => {
                         <div className="text-xs text-gray-400">
                           Condition: {pickup.condition}
                         </div>
+                        {/* Inspection & Verification Button */}
+                        <button
+                          className="mt-2 px-3 py-1 bg-teal-600 text-white rounded text-xs hover:bg-teal-700"
+                          onClick={() => {
+                            if (pickup.pickupStatus === 'Collected') {
+                              navigate(`/ewaste-inspection?id=${pickup._id}`);
+                            } else {
+                              setSelectedPickup(pickup);
+                            }
+                          }}
+                        >
+                          Inspect / Verify
+                        </button>
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
@@ -498,6 +513,58 @@ const PickupManagement: React.FC = () => {
                         {pickup.userId ? (
                           <>
                             <div className="text-sm font-medium text-gray-900">
+      {/* Inspection Modal */}
+      {selectedPickup && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-white bg-opacity-70">
+          <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-lg relative">
+            <button
+              className="absolute top-2 right-2 text-gray-400 hover:text-gray-700"
+              onClick={() => setSelectedPickup(null)}
+            >
+              &times;
+            </button>
+            <h3 className="text-lg font-bold mb-2">Inspect & Verify Pickup</h3>
+            <div className="mb-2">
+              <strong>Device:</strong> {selectedPickup.deviceType} {selectedPickup.brand} {selectedPickup.model}
+            </div>
+            <div className="mb-2">
+              <strong>Status:</strong> {selectedPickup.pickupStatus}
+            </div>
+            <form
+              onSubmit={async (e) => {
+                e.preventDefault();
+                // Collect form data
+                const form = e.target as HTMLFormElement;
+                const status = (form.status as HTMLSelectElement).value;
+                const notes = (form.notes as HTMLInputElement).value;
+                // TODO: Handle image upload
+                await handleStatusUpdate(selectedPickup._id, status);
+                // Optionally send notes/images to backend
+                setSelectedPickup(null);
+              }}
+            >
+              <div className="mb-2">
+                <label className="block text-sm font-medium mb-1">Inspection Status</label>
+                <select name="status" defaultValue={selectedPickup.pickupStatus} className="w-full px-2 py-1 border rounded">
+                  <option value="Pending">Pending</option>
+                  <option value="Under Inspection">Under Inspection</option>
+                  <option value="Completed">Completed</option>
+                  <option value="Verified">Verified</option>
+                </select>
+              </div>
+              <div className="mb-2">
+                <label className="block text-sm font-medium mb-1">Inspection Notes</label>
+                <input name="notes" type="text" defaultValue={selectedPickup.notes || ''} className="w-full px-2 py-1 border rounded" />
+              </div>
+              <div className="mb-2">
+                <label className="block text-sm font-medium mb-1">Upload Inspection Images</label>
+                <input name="images" type="file" multiple className="w-full" />
+              </div>
+              <button type="submit" className="mt-2 px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">Update Inspection</button>
+            </form>
+          </div>
+        </div>
+      )}
                               {pickup.userId.firstName} {pickup.userId.lastName}
                             </div>
                             <div className="text-sm text-gray-500">
@@ -773,7 +840,16 @@ const PickupManagement: React.FC = () => {
                   
                   {selectedPickup.pickupStatus === 'In Transit' && (
                     <button
-                      onClick={() => handleStatusUpdate(selectedPickup._id, 'Collected')}
+                      onClick={() => {
+                        // If no recycler or delivery partner assigned, prompt assignment
+                        if (!selectedPickup.assignedRecyclerId && !selectedPickup.assignedDeliveryPartnerId) {
+                          alert('Please assign a recycler or delivery partner before marking as Collected.');
+                          setPartnerAssignmentPickup(selectedPickup);
+                          setShowPartnerModal(true);
+                        } else {
+                          handleStatusUpdate(selectedPickup._id, 'Collected');
+                        }
+                      }}
                       disabled={isUpdating}
                       className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50"
                     >

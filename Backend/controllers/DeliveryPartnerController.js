@@ -110,15 +110,6 @@ exports.createDeliveryPartner = async (req, res) => {
 // 2. Get all delivery partners for a recycler
 exports.getDeliveryPartners = async (req, res) => {
   try {
-    const recyclerId = req.recycler?._id || req.params.recyclerId;
-    
-    if (!recyclerId || !isValidObjectId(recyclerId)) {
-      return res.status(400).json({
-        success: false,
-        message: "Valid recycler ID is required"
-      });
-    }
-
     const {
       status,
       isAvailable,
@@ -129,17 +120,14 @@ exports.getDeliveryPartners = async (req, res) => {
       sortOrder = 'desc'
     } = req.query;
 
-    // Build filter
-    const filter = { recyclerId };
-    
+    // Build filter (no recyclerId restriction)
+    const filter = {};
     if (status && status !== 'all') {
       filter.status = status;
     }
-    
     if (isAvailable !== undefined) {
       filter.isAvailable = isAvailable === 'true';
     }
-    
     if (city) {
       filter['serviceAreas.city'] = new RegExp(city, 'i');
     }
@@ -173,7 +161,7 @@ exports.getDeliveryPartners = async (req, res) => {
       success: true,
       message: "Delivery partners retrieved successfully",
       data: {
-        partners: partnersWithMetrics,
+        deliveryPartners: partnersWithMetrics,
         pagination: {
           currentPage: parseInt(page),
           totalPages,
