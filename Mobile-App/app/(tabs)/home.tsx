@@ -212,7 +212,7 @@ export default function Home() {
       clearInterval(tipInterval);
       clearInterval(counterInterval);
     };
-  }, []);
+  }, [eWasteTips.length, fadeAnim, progressAnim, rotateAnim, scaleAnim, slideAnimNative, tipFadeAnim, waveAnim]);
 
   // Enhanced truck animation function with perfect timing
   const animateTruckAndNavigate = useCallback(() => {
@@ -379,26 +379,8 @@ export default function Home() {
     );
   }, []);
 
-  const addNewNotification = useCallback((newNotification: any) => {
-    const notification = {
-      id: Date.now().toString(),
-      time: 'Just now',
-      read: false,
-      ...newNotification
-    };
-    setNotifications(prev => [notification, ...prev]);
-  }, []);
 
   // Function to simulate adding a pickup notification (for demo purposes)
-  const addPickupNotification = useCallback((deviceType: string, brand: string, model: string) => {
-    addNewNotification({
-      type: 'pickup_scheduled',
-      title: '🚛 Pickup Scheduled!',
-      message: `Your ${brand} ${model} pickup has been scheduled successfully`,
-      icon: '🚛',
-      color: '#10b981'
-    });
-  }, [addNewNotification]);
 
   // Interpolated values for smoother animations
   const spin = rotateAnim.interpolate({

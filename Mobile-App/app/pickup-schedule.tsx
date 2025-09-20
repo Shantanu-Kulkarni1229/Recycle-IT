@@ -243,6 +243,23 @@ export default function PickupSchedule() {
   }, [fadeAnim, slideAnim]);
 
   // Celebration animation functions
+  const closeCelebrationModal = useCallback(() => {
+    Animated.parallel([
+      Animated.timing(celebrationScale, {
+        toValue: 0,
+        duration: 300,
+        useNativeDriver: true,
+      }),
+      Animated.timing(celebrationOpacity, {
+        toValue: 0,
+        duration: 300,
+        useNativeDriver: true,
+      })
+    ]).start(() => {
+      setShowCelebrationModal(false);
+    });
+  }, [celebrationScale, celebrationOpacity]);
+
   const startCelebrationAnimation = useCallback(() => {
     setShowCelebrationModal(true);
     
@@ -335,24 +352,7 @@ export default function PickupSchedule() {
     setTimeout(() => {
       closeCelebrationModal();
     }, 5000);
-  }, [celebrationScale, celebrationOpacity, confettiAnimations, floatingIconsAnimations]);
-
-  const closeCelebrationModal = useCallback(() => {
-    Animated.parallel([
-      Animated.timing(celebrationScale, {
-        toValue: 0,
-        duration: 300,
-        useNativeDriver: true,
-      }),
-      Animated.timing(celebrationOpacity, {
-        toValue: 0,
-        duration: 300,
-        useNativeDriver: true,
-      })
-    ]).start(() => {
-      setShowCelebrationModal(false);
-    });
-  }, [celebrationScale, celebrationOpacity]);
+  }, [celebrationScale, celebrationOpacity, confettiAnimations, floatingIconsAnimations, closeCelebrationModal]);
 
   // Handle input changes
   const handleChange = (key: keyof FormData, value: string) => {

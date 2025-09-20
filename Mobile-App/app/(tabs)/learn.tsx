@@ -266,7 +266,7 @@ export default function Learn() {
   const [selectedGoal, setSelectedGoal] = useState<SDGGoal | null>(null);
   const [modalVisible, setModalVisible] = useState(false);
   const [showVideo, setShowVideo] = useState(false);
-  const [currentVideoId, setCurrentVideoId] = useState('');
+  const [, setCurrentVideoId] = useState('');
   const scrollY = useRef(new Animated.Value(0)).current;
   const scaleAnim = useRef(new Animated.Value(1)).current;
 
@@ -298,6 +298,7 @@ export default function Learn() {
       } else {
         Alert.alert("Error", "Unable to open YouTube. Please check if YouTube app is installed.");
       }
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (error) {
       Alert.alert("Error", "Something went wrong while opening the video.");
     }

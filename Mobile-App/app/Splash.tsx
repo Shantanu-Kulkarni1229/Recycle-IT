@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 import React, { useEffect, useState } from "react";
 import { View, Text, ActivityIndicator, Animated, Easing, Dimensions, StatusBar, Image } from "react-native";
 import { useRouter } from "expo-router";
@@ -11,8 +12,8 @@ export default function Splash() {
   const { setUserId } = useUser();
   const [checking, setChecking] = useState(true);
   
-  // Minimal animation values
   const fadeAnim = new Animated.Value(0);
+  
   const scaleAnim = new Animated.Value(0.9);
   const slideUpAnim = new Animated.Value(30);
   const iconRotateAnim = new Animated.Value(0);
@@ -142,7 +143,7 @@ export default function Splash() {
     };
 
     checkLogin();
-  }, []);
+  }, [fadeAnim, iconRotateAnim, particles, pulseAnim, router, scaleAnim, setUserId, slideUpAnim]);
 
   return (
     <View style={{
