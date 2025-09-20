@@ -2,6 +2,7 @@ const express = require("express");
 const router = express.Router();
 const recyclerPickupController = require("../controllers/recyclerPickupController");
 const uploadToCloudinary = require("../middleware/uploadToCloudinary");
+const { protect } = require("../middleware/auth.js");
 
 // Existing routes (UNCHANGED)
 router.post("/:id/confirm-received", recyclerPickupController.confirmReceived);
