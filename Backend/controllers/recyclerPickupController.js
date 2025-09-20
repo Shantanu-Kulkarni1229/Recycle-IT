@@ -8,19 +8,19 @@ exports.confirmReceived = async (req, res) => {
   try {
     const { id } = req.params;
     const pickup = await SchedulePickup.findById(id);
-
     if (!pickup) return res.status(404).json({ success: false, message: "Pickup not found" });
 
     pickup.inspectionStatus = "Pending";
     await pickup.save();
 
-    const RecyclerPickup = new RecyclerPickup({
+    const newRecyclerPickup = new RecyclerPickup({
             pickupId: pickup._id,
-            UserId: pickup.userId,
+            userId: pickup.userId,
+            recyclerId: req.params.id, 
             inspectionStatus: "Under Inspection"
           });
 
-    await RecyclerPickup.save();
+    await newRecyclerPickup.save();
 
     // Optionally update SchedulePickup status too
     await SchedulePickup.findByIdAndUpdate(pickup.id, { pickupStatus: "Verified" });
@@ -43,14 +43,12 @@ exports.inspectDevice = async (req, res) => {
     const damageImages = [];
 
     if (req.files) {
-      // If files were uploaded, get their Cloudinary URLs
-      req.files.forEach(file => {
-        if (file.fieldname === 'inspectionImages') {
-          inspectionImages.push(file.path); // Cloudinary URL
-        } else if (file.fieldname === 'damageImages') {
-          damageImages.push(file.path); // Cloudinary URL
-        }
-      });
+      if (req.files.inspectionImages) {
+        req.files.inspectionImages.forEach(file => inspectionImages.push(file.path));
+      }
+      if (req.files.damageImages) {
+        req.files.damageImages.forEach(file => damageImages.push(file.path));
+      }
     }
 
     const updateData = {
