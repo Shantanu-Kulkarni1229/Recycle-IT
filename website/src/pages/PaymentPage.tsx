@@ -10,9 +10,9 @@ import {
   Laptop,
   Monitor,
   Printer,
-  HardDrive
+  HardDrive,
+  Loader2
 } from 'lucide-react';
-import { paymentService, CreateOrderRequest, PaymentService } from '../services/paymentService';
 
 interface PaymentPageProps {}
 
@@ -34,6 +34,7 @@ const PaymentPage: React.FC<PaymentPageProps> = () => {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
   const [paymentDetails, setPaymentDetails] = useState<any>(null);
+  const [animationStep, setAnimationStep] = useState(0);
 
   // Get user data
   const getUserData = () => {
@@ -114,52 +115,67 @@ const PaymentPage: React.FC<PaymentPageProps> = () => {
     }
   };
 
-  const handlePayment = async () => {
+  // Generate mock payment IDs
+  const generateMockPaymentId = () => {
+    return 'pay_' + Math.random().toString(36).substr(2, 14);
+  };
+
+  const generateMockOrderId = () => {
+    return 'order_' + Math.random().toString(36).substr(2, 14);
+  };
+
+  // Bypass payment function with animation
+  const handlePaymentBypass = async () => {
     if (!paymentData) return;
 
     setIsProcessing(true);
     setError('');
 
-    try {
-      const orderData: CreateOrderRequest = {
-        amount: PaymentService.rupeesToPaise(paymentData.amount), // Convert to paise
-        serviceType: paymentData.serviceType,
-        deviceInfo: paymentData.deviceInfo || paymentData.deviceType,
-        pickupAddress: paymentData.pickupAddress,
-        notes: {
-          description: paymentData.description,
-          userType: userData.userType
-        }
-      };
+    // Animation sequence
+    const animationSequence = [
+      { step: 1, message: 'Connecting to Razorpay...', duration: 800 },
+      { step: 2, message: 'Verifying payment details...', duration: 1000 },
+      { step: 3, message: 'Processing payment...', duration: 1200 },
+      { step: 4, message: 'Payment successful!', duration: 500 },
+    ];
 
-      await paymentService.initiatePayment(
-        orderData,
-        {
-          name: userData.name,
-          email: userData.email,
-          contact: userData.contact
-        },
-        (paymentResult) => {
-          // Payment successful
-          setSuccess(true);
-          setPaymentDetails(paymentResult);
-          setIsProcessing(false);
-          
-          // Store payment success data
-          localStorage.setItem('lastPaymentSuccess', JSON.stringify({
-            ...paymentResult,
-            timestamp: new Date().toISOString()
-          }));
-        },
-        (error) => {
-          // Payment failed or cancelled
-          setError(error.message || 'Payment failed');
-          setIsProcessing(false);
-        }
-      );
-    } catch (error: any) {
-      setError(error.message || 'Failed to initiate payment');
-      setIsProcessing(false);
+    for (let i = 0; i < animationSequence.length; i++) {
+      const { step, duration } = animationSequence[i];
+      setAnimationStep(step);
+      
+      await new Promise(resolve => setTimeout(resolve, duration));
+    }
+
+    // Generate mock payment details
+    const mockPaymentDetails = {
+      razorpay_payment_id: generateMockPaymentId(),
+      razorpay_order_id: generateMockOrderId(),
+      razorpay_signature: 'sig_' + Math.random().toString(36).substr(2, 20),
+      amount: paymentData.amount,
+      serviceType: paymentData.serviceType,
+      timestamp: new Date().toISOString()
+    };
+
+    // Complete the payment
+    setSuccess(true);
+    setPaymentDetails(mockPaymentDetails);
+    setIsProcessing(false);
+    setAnimationStep(0);
+    
+    // Store payment success data
+    localStorage.setItem('lastPaymentSuccess', JSON.stringify({
+      ...mockPaymentDetails,
+      timestamp: new Date().toISOString()
+    }));
+  };
+
+  const getAnimationMessage = () => {
+    switch (animationStep) {
+      case 1: return 'Connecting to Razorpay...';
+      case 2: return 'Verifying payment details...';
+      case 3: return 'Processing payment...';
+      case 4: return 'Payment successful!';
+      default: return 'Processing...';
     }
   };
 
@@ -184,12 +200,68 @@ const PaymentPage: React.FC<PaymentPageProps> = () => {
     );
   }
 
+  // Payment Processing Animation Overlay
+  if (isProcessing) {
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="bg-white rounded-lg shadow-2xl p-8 max-w-md w-full mx-4">
+          <div className="text-center">
+            {/* Animated Razorpay Logo Placeholder */}
+            <div className="w-20 h-20 bg-blue-600 rounded-lg flex items-center justify-center mx-auto mb-6">
+              <CreditCard className="w-10 h-10 text-white" />
+            </div>
+            
+            {/* Progress Animation */}
+            <div className="mb-6">
+              <div className="flex items-center justify-center mb-4">
+                {animationStep >= 1 && (
+                  <div className={`w-4 h-4 rounded-full mr-2 ${animationStep >= 4 ? 'bg-green-500' : 'bg-blue-500'} ${animationStep === 1 ? 'animate-pulse' : ''}`}></div>
+                )}
+                {animationStep >= 2 && (
+                  <div className={`w-4 h-4 rounded-full mr-2 ${animationStep >= 4 ? 'bg-green-500' : 'bg-blue-500'} ${animationStep === 2 ? 'animate-pulse' : ''}`}></div>
+                )}
+                {animationStep >= 3 && (
+                  <div className={`w-4 h-4 rounded-full mr-2 ${animationStep >= 4 ? 'bg-green-500' : 'bg-blue-500'} ${animationStep === 3 ? 'animate-pulse' : ''}`}></div>
+                )}
+                {animationStep >= 4 && (
+                  <CheckCircle className="w-6 h-6 text-green-500" />
+                )}
+              </div>
+              
+              <p className="text-lg font-medium text-gray-900 mb-2">
+                {getAnimationMessage()}
+              </p>
+              
+              <div className="w-full bg-gray-200 rounded-full h-2">
+                <div 
+                  className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                  style={{ width: `${(animationStep / 4) * 100}%` }}
+                ></div>
+              </div>
+            </div>
+
+            {/* Amount Display */}
+            <div className="bg-gray-50 rounded-lg p-4 mb-4">
+              <p className="text-sm text-gray-600">Amount to be paid</p>
+              <p className="text-2xl font-bold text-gray-900">₹{paymentData.amount}</p>
+            </div>
+
+            {/* Spinning loader for active steps */}
+            {animationStep < 4 && (
+              <Loader2 className="w-8 h-8 animate-spin text-blue-600 mx-auto" />
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   if (success) {
     return (
       <div className="min-h-screen bg-gray-50 py-8 px-4 sm:px-6 lg:px-8">
         <div className="max-w-md mx-auto">
           <div className="bg-white rounded-lg shadow-lg p-8 text-center">
-            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4 animate-bounce">
               <CheckCircle className="w-8 h-8 text-green-600" />
             </div>
             
@@ -330,7 +402,7 @@ const PaymentPage: React.FC<PaymentPageProps> = () => {
               </div>
 
               <button
-                onClick={handlePayment}
+                onClick={handlePaymentBypass}
                 disabled={isProcessing}
                 className={`w-full flex items-center justify-center py-3 px-6 rounded-lg font-medium transition-colors ${
                   isProcessing

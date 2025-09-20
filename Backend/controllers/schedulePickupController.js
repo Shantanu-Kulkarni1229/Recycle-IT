@@ -562,7 +562,8 @@ async function sendPickupStatusNotification(pickup, newStatus) {
   }
 
   let subject = '';
-  let emailBody = '';
+  let emailHTML = '';
+  let emailText = '';
   
   const userName = `${pickup.userId.firstName} ${pickup.userId.lastName}`;
   const deviceInfo = `${pickup.brand} ${pickup.model} (${pickup.deviceType})`;
@@ -570,7 +571,21 @@ async function sendPickupStatusNotification(pickup, newStatus) {
   switch (newStatus) {
     case 'Scheduled':
       subject = '🎉 Pickup Approved - Your E-Waste Collection is Scheduled!';
-      emailBody = `
+      emailText = `Hello ${userName},
+
+Great news! Your e-waste pickup request has been approved and scheduled.
+
+Pickup Details:
+- Device: ${deviceInfo}
+- Address: ${pickup.pickupAddress}
+- Preferred Date: ${new Date(pickup.preferredPickupDate).toLocaleDateString()}
+- Status: Scheduled
+
+Our team will contact you soon to confirm the exact pickup time. Please keep your device ready and ensure someone is available at the pickup location.
+
+Thank you for choosing eco-friendly e-waste recycling!`;
+
+      emailHTML =`
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
           <div style="background: linear-gradient(135deg, #10b981, #059669); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
             <h1 style="margin: 0; font-size: 28px;">🎉 Great News!</h1>
@@ -606,7 +621,18 @@ async function sendPickupStatusNotification(pickup, newStatus) {
       
     case 'In Transit':
       subject = '🚚 Pickup Team En Route - We\'re Coming to Collect Your Device!';
-      emailBody = `
+      emailText = `Hello ${userName},
+
+Our pickup team is currently en route to collect your ${deviceInfo}.
+
+Please be ready:
+- Keep your ${pickup.deviceType} accessible
+- Ensure someone is available at ${pickup.pickupAddress}
+- Have any accessories or documentation ready if applicable
+
+Our team will contact you upon arrival. Thank you for your patience!`;
+
+      emailHTML = `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
           <div style="background: linear-gradient(135deg, #3b82f6, #1d4ed8); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
             <h1 style="margin: 0; font-size: 28px;">🚚 On The Way!</h1>
@@ -639,7 +665,19 @@ async function sendPickupStatusNotification(pickup, newStatus) {
       
     case 'Collected':
       subject = '📦 Device Successfully Collected - Thank You for Recycling!';
-      emailBody = `
+      emailText = `Hello ${userName},
+
+Great news! Your ${deviceInfo} has been successfully collected by our team.
+
+What's Next:
+- Your device will be transported to our recycling facility
+- We'll perform quality checks and data destruction
+- You'll receive updates on the recycling process
+- Environmental impact report will be shared
+
+Thank you for choosing responsible e-waste recycling. You're making a positive impact on the environment!`;
+
+      emailHTML = `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
           <div style="background: linear-gradient(135deg, #059669, #047857); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
             <h1 style="margin: 0; font-size: 28px;">📦 Successfully Collected!</h1>
@@ -673,7 +711,16 @@ async function sendPickupStatusNotification(pickup, newStatus) {
       
     case 'Cancelled':
       subject = '❌ Pickup Cancelled - We\'re Here to Help';
-      emailBody = `
+      emailText = `Hello ${userName},
+
+We regret to inform you that your pickup for ${deviceInfo} has been cancelled.
+
+Need Help?
+Please contact our support team for assistance or to reschedule your pickup. We're here to help you with responsible e-waste disposal.
+
+We apologize for any inconvenience caused and look forward to serving you in the future.`;
+
+      emailHTML = `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
           <div style="background: linear-gradient(135deg, #dc2626, #b91c1c); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
             <h1 style="margin: 0; font-size: 28px;">❌ Pickup Cancelled</h1>
@@ -704,7 +751,17 @@ async function sendPickupStatusNotification(pickup, newStatus) {
       
     default:
       subject = `📱 Pickup Status Update - ${newStatus}`;
-      emailBody = `
+      emailText = `Hello ${userName},
+
+The status of your pickup for ${deviceInfo} has been updated to: ${newStatus}
+
+Device: ${deviceInfo}
+Current Status: ${newStatus}
+Updated: ${new Date().toLocaleString()}
+
+Thank you for choosing our e-waste recycling service.`;
+
+      emailHTML = `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
           <div style="background: linear-gradient(135deg, #6b7280, #4b5563); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
             <h1 style="margin: 0; font-size: 28px;">📱 Status Update</h1>
@@ -729,7 +786,7 @@ async function sendPickupStatusNotification(pickup, newStatus) {
   }
   
   try {
-    await sendEmail(pickup.userId.email, subject, emailBody);
+    await sendEmail(pickup.userId.email, subject, emailText, emailHTML); // Pass both text and HTML
     console.log(`Status notification sent to ${pickup.userId.email} for pickup ${pickup._id}`);
   } catch (emailError) {
     console.error("Error sending email notification:", emailError);

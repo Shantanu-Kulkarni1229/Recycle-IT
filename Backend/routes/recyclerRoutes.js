@@ -77,6 +77,7 @@ router.post('/login', RecyclerController.loginRecycler);
 router.post('/forgot-password', RecyclerController.forgotPassword);
 router.post('/reset-password', passwordValidation, RecyclerController.resetPassword);
 router.post('/resend-otp', RecyclerController.resendOtp);
+router.post('/accept-terms', RecyclerController.acceptTerms);
 router.get('/unapproved-device', RecyclerController.getUnApprovedPickups);
 
 // Test route (for development - bypasses email verification)

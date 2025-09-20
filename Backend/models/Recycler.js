@@ -78,6 +78,13 @@ const recyclerSchema = new mongoose.Schema({
     type: String,
     enum: ['pending', 'approved', 'rejected'],
     default: 'pending'
+  },
+  termsAccepted: {
+    type: Boolean,
+    default: false
+  },
+  termsAcceptedAt: {
+    type: Date
   }
 }, {
   timestamps: true
