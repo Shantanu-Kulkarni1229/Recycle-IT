@@ -49,54 +49,11 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
         setRecyclers(response.data.data);
       } else {
         console.error('Failed to load recyclers:', response.data.message);
-        // Fallback to mock data if API fails
-        setRecyclers([
-          {
-            id: 1,
-            ownerName: 'John Doe',
-            companyName: 'EcoRecycle Ltd',
-            email: 'john@ecorecycle.com',
-            phoneNumber: '9876543210',
-            city: 'Mumbai',
-            state: 'Maharashtra',
-            isVerified: true,
-            registrationDate: '2024-01-15',
-            totalTransactions: 25,
-            totalAmount: 150000
-          }
-        ]);
+        setRecyclers([]);
       }
     } catch (error) {
       console.error('Error loading recyclers:', error);
-      // Fallback to mock data
-      setRecyclers([
-        {
-          id: 1,
-          ownerName: 'John Doe',
-          companyName: 'EcoRecycle Ltd',
-          email: 'john@ecorecycle.com',
-          phoneNumber: '9876543210',
-          city: 'Mumbai',
-          state: 'Maharashtra',
-          isVerified: true,
-          registrationDate: '2024-01-15',
-          totalTransactions: 25,
-          totalAmount: 150000
-        },
-        {
-          id: 2,
-          ownerName: 'Jane Smith',
-          companyName: 'Green Solutions',
-          email: 'jane@greensolutions.com',
-          phoneNumber: '8765432109',
-          city: 'Delhi',
-          state: 'Delhi',
-          isVerified: true,
-          registrationDate: '2024-02-20',
-          totalTransactions: 18,
-          totalAmount: 95000
-        }
-      ]);
+      setRecyclers([]);
     } finally {
       setLoading(false);
     }
@@ -109,48 +66,11 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
         setTransactions(response.data.data);
       } else {
         console.error('Failed to load transactions:', response.data.message);
-        // Fallback to mock data
-        setTransactions([
-          {
-            id: 1,
-            recyclerId: 1,
-            recyclerName: 'John Doe',
-            companyName: 'EcoRecycle Ltd',
-            type: 'E-waste Collection',
-            amount: 15000,
-            date: '2024-12-15',
-            status: 'Completed',
-            description: 'Computer parts and electronics'
-          }
-        ]);
+        setTransactions([]);
       }
     } catch (error) {
       console.error('Error loading transactions:', error);
-      // Fallback to mock data
-      setTransactions([
-        {
-          id: 1,
-          recyclerId: 1,
-          recyclerName: 'John Doe',
-          companyName: 'EcoRecycle Ltd',
-          type: 'E-waste Collection',
-          amount: 15000,
-          date: '2024-12-15',
-          status: 'Completed',
-          description: 'Computer parts and electronics'
-        },
-        {
-          id: 2,
-          recyclerId: 2,
-          recyclerName: 'Jane Smith',
-          companyName: 'Green Solutions',
-          type: 'Plastic Recycling',
-          amount: 8500,
-          date: '2024-12-14',
-          status: 'Processing',
-          description: 'PET bottles and containers'
-        }
-      ]);
+      setTransactions([]);
     }
   };
 

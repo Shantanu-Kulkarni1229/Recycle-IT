@@ -79,8 +79,7 @@ const RecyclerDashboard: React.FC = () => {
         }
       } catch (error) {
         console.error('Error loading pending pickups:', error);
-        // Set mock data for demonstration
-        setStats({ totalAssigned: 15, pending: 5, inProgress: 7, completed: 3 });
+        setStats({ totalAssigned: 0, pending: 0, inProgress: 0, completed: 0 });
         setAssignedEwaste([]);
       }
 

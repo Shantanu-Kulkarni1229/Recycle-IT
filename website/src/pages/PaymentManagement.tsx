@@ -41,19 +41,7 @@ const PaymentManagement: React.FC = () => {
     const loadPayments = async () => {
       try {
         setIsLoading(true);
-        // For now, load sample data since we need to implement the actual API
-        setPayments([
-          {
-            _id: '1',
-            pickupId: 'PU001',
-            deviceType: 'Laptop',
-            proposedAmount: 12000,
-            status: 'pending',
-            userDetails: { name: 'John Doe', phone: '123-456-7890' },
-            createdAt: new Date().toISOString(),
-            inspectionNotes: 'Good condition, minor scratches'
-          }
-        ]);
+    setPayments([]);
       } catch (error) {
         console.error('Error loading payments:', error);
         setPayments([]);
@@ -90,56 +78,21 @@ const PaymentManagement: React.FC = () => {
             }));
           setPayments(paymentsData);
         } else {
-          setPayments(generateMockPayments());
+          setPayments([]);
         }
       } else {
-        setPayments(generateMockPayments());
+        setPayments([]);
       }
     } catch (err: any) {
       console.error('Payment loading error:', err);
-      setError('Failed to load payments. Showing sample data.');
-      setPayments(generateMockPayments());
+      setError('Failed to load payments.');
+      setPayments([]);
     } finally {
       setIsLoading(false);
     }
   };
 
-  const generateMockPayments = (): Payment[] => {
-    return [
-      {
-        _id: '1',
-        pickupId: 'PKP001',
-        deviceType: 'iPhone 12',
-        proposedAmount: 25000,
-        finalAmount: 24000,
-        status: 'completed',
-        createdAt: new Date(Date.now() - 172800000).toISOString(),
-        paidAt: new Date(Date.now() - 86400000).toISOString(),
-        userDetails: { name: 'John Doe', phone: '9876543210' },
-        inspectionNotes: 'Good condition, minor scratches'
-      },
-      {
-        _id: '2',
-        pickupId: 'PKP002',
-        deviceType: 'Dell Laptop XPS 13',
-        proposedAmount: 15000,
-        status: 'proposed',
-        createdAt: new Date(Date.now() - 86400000).toISOString(),
-        userDetails: { name: 'Jane Smith', phone: '9876543211' },
-        inspectionNotes: 'Screen has minor scratches, battery health is 85%'
-      },
-      {
-        _id: '3',
-        pickupId: 'PKP003',
-        deviceType: 'Samsung Galaxy Tab',
-        proposedAmount: 0,
-        status: 'pending',
-        createdAt: new Date().toISOString(),
-        userDetails: { name: 'Mike Wilson', phone: '9876543212' },
-        inspectionNotes: 'Inspection completed, need to propose payment'
-      }
-    ];
-  };
+  // Removed generateMockPayments. All payment data now comes from API only.
 
   const handleProposePayment = async () => {
     if (!selectedPayment || !proposalData.amount) return;
