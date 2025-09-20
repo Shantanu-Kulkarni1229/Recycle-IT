@@ -51,6 +51,23 @@ type DeviceImage = { uri: string; name: string; type: string };
 type DocumentFile = { uri: string; name: string; type: string };
 type Errors = Partial<Record<keyof FormData, string>>;
 
+// Recycler type definition
+type Recycler = {
+  id: string;
+  ownerName: string;
+  companyName: string;
+  email: string;
+  phoneNumber: string;
+  city: string;
+  state: string;
+  address: string;
+  pincode: string;
+  servicesOffered: string[];
+  operatingHours: string;
+  website?: string;
+  description?: string;
+};
+
 export default function PickupSchedule() {
   const router = useRouter();
   const { userId } = useUser();
@@ -89,6 +106,13 @@ export default function PickupSchedule() {
 
   // Error state for each field
   const [errors, setErrors] = useState<Errors>({});
+
+  // Recycler selection states
+  const [showRecyclerModal, setShowRecyclerModal] = useState(false);
+  const [recyclers, setRecyclers] = useState<Recycler[]>([]);
+  const [selectedRecycler, setSelectedRecycler] = useState<Recycler | null>(null);
+  const [loadingRecyclers, setLoadingRecyclers] = useState(false);
+  const [recyclerSelectionMode, setRecyclerSelectionMode] = useState<'auto' | 'manual' | null>(null);
 
   // Request permissions on component mount
   useEffect(() => {
@@ -302,6 +326,180 @@ export default function PickupSchedule() {
     setDocuments(updatedDocuments);
   };
 
+  // Fetch recyclers from API
+  const fetchRecyclers = async (): Promise<Recycler[]> => {
+    try {
+      setLoadingRecyclers(true);
+      const response = await api.get('/users/recyclers');
+      
+      if (response.data.success) {
+        return response.data.data || [];
+      } else {
+        throw new Error('Failed to fetch recyclers');
+      }
+    } catch (error: any) {
+      console.error('Error fetching recyclers:', error);
+      showAlert({
+        type: 'error',
+        title: 'Failed to Load Recyclers',
+        message: 'Unable to fetch recycler list. Please try again.',
+      });
+      return [];
+    } finally {
+      setLoadingRecyclers(false);
+    }
+  };
+
+  // Show recycler selection popup
+  const showRecyclerSelectionPopup = () => {
+    showAlert({
+      type: 'info',
+      title: '🔄 Choose Recycler Option',
+      message: 'How would you like to select a recycler for your pickup?',
+      primaryButton: {
+        text: '📍 Let Us Choose (Nearby)',
+        onPress: () => handleRecyclerChoice('auto')
+      },
+      secondaryButton: {
+        text: '👤 I\'ll Choose Myself',
+        onPress: () => handleRecyclerChoice('manual')
+      }
+    });
+  };
+
+  // Handle recycler choice
+  const handleRecyclerChoice = async (mode: 'auto' | 'manual') => {
+    setRecyclerSelectionMode(mode);
+    
+    if (mode === 'auto') {
+      // Auto mode - submit directly
+      await proceedWithSubmission();
+    } else {
+      // Manual mode - show recycler list
+      const recyclerList = await fetchRecyclers();
+      setRecyclers(recyclerList);
+      setShowRecyclerModal(true);
+    }
+  };
+
+  // Proceed with form submission
+  const proceedWithSubmission = async () => {
+    setLoading(true);
+    try {
+      // Create FormData for file upload
+      const formData = new FormData();
+      
+      // Add form fields
+      Object.keys(form).forEach(key => {
+        const formKey = key as keyof FormData;
+        if (form[formKey]) {
+          formData.append(key, form[formKey] as string);
+        }
+      });
+      
+      // Add userId
+      formData.append('userId', userId!);
+      
+      // Add selected recycler if manual mode
+      if (recyclerSelectionMode === 'manual' && selectedRecycler) {
+        formData.append('selectedRecyclerId', selectedRecycler.id);
+        formData.append('selectedRecyclerName', selectedRecycler.companyName);
+      }
+      
+      // Add device images
+      deviceImages.forEach((image) => {
+        formData.append('deviceImages', {
+          uri: image.uri,
+          name: image.name,
+          type: image.type,
+        } as any);
+      });
+      
+      // Add documents
+      documents.forEach((doc) => {
+        formData.append('documents', {
+          uri: doc.uri,
+          name: doc.name,
+          type: doc.type,
+        } as any);
+      });
+
+      await api.post("schedule-pickup", formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+
+      // 🔔 Schedule notification for pickup
+      await schedulePickupNotification(
+        form.deviceType === "Other" ? form.customDeviceType || "Custom Device" : form.deviceType,
+        form.brand,
+        form.model,
+        form.preferredPickupDate
+      );
+
+      // 🎉 Show beautiful success alert
+      const recyclerMessage = recyclerSelectionMode === 'manual' && selectedRecycler 
+        ? ` Your chosen recycler: ${selectedRecycler.companyName}.`
+        : ' Our system will assign the best nearby recycler for you.';
+
+      showAlert({
+        type: 'success',
+        title: '🎉 Pickup Scheduled Successfully!',
+        message: `Your ${form.brand} ${form.model} pickup has been scheduled for ${new Date(form.preferredPickupDate).toLocaleDateString()}.${recyclerMessage} You'll receive a notification when our team is ready to collect your device.`,
+        primaryButton: {
+          text: 'Go to Home',
+          onPress: () => {
+            router.push("/(tabs)/home");
+          }
+        },
+        secondaryButton: {
+          text: 'Schedule Another',
+          onPress: () => {
+            // Reset form for another pickup
+            setForm({
+              deviceType: "",
+              brand: "",
+              model: "",
+              purchaseDate: "",
+              condition: "",
+              weight: "",
+              notes: "",
+              pickupAddress: "",
+              city: "",
+              state: "",
+              pincode: "",
+              preferredPickupDate: "",
+            });
+            setDeviceImages([]);
+            setDocuments([]);
+            setSelectedRecycler(null);
+            setRecyclerSelectionMode(null);
+            setCurrentSection(0);
+          }
+        }
+      });
+
+    } catch (err: any) {
+      console.error("Submit error:", err);
+      
+      // 🚨 Show beautiful error alert
+      showAlert({
+        type: 'error',
+        title: 'Oops! Something went wrong',
+        message: err.response?.data?.message || 'Failed to schedule pickup. Please check your internet connection and try again.',
+        primaryButton: {
+          text: 'Try Again',
+          onPress: () => {
+            // Just close the alert, user can retry
+          }
+        }
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // Validate all fields before submit
   const validate = (): boolean => {
     const newErrors: Errors = {};
@@ -352,115 +550,8 @@ export default function PickupSchedule() {
       return;
     }
 
-    setLoading(true);
-    try {
-      // Create FormData for file upload
-      const formData = new FormData();
-      
-      // Add form fields
-      Object.keys(form).forEach(key => {
-        const formKey = key as keyof FormData;
-        if (form[formKey]) {
-          if (formKey === 'preferredPickupDate' || formKey === 'purchaseDate') {
-            formData.append(key, new Date(form[formKey] as string).toISOString());
-          } else if (formKey === 'weight') {
-            formData.append(key, String(Number(form[formKey])));
-          } else {
-            formData.append(key, form[formKey] as string);
-          }
-        }
-      });
-      
-      // Add userId
-      formData.append('userId', userId);
-      
-      // Add device images
-      deviceImages.forEach((image) => {
-        // For React Native, we need to append files with specific structure
-        formData.append('deviceImages', {
-          uri: image.uri,
-          name: image.name,
-          type: image.type,
-        } as any);
-      });
-      
-      // Add documents
-      documents.forEach((doc) => {
-        formData.append('documents', {
-          uri: doc.uri,
-          name: doc.name,
-          type: doc.type,
-        } as any);
-      });
-
-      await api.post("schedule-pickup", formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      });
-
-      // 🔔 Schedule notification for pickup
-      await schedulePickupNotification(
-        form.deviceType === "Other" ? form.customDeviceType || "Custom Device" : form.deviceType,
-        form.brand,
-        form.model,
-        form.preferredPickupDate
-      );
-
-      // 🎉 Show beautiful success alert
-      showAlert({
-        type: 'success',
-        title: '🎉 Pickup Scheduled Successfully!',
-        message: `Your ${form.brand} ${form.model} pickup has been scheduled for ${new Date(form.preferredPickupDate).toLocaleDateString()}. You'll receive a notification when our team is ready to collect your device.`,
-        primaryButton: {
-          text: 'Go to Home',
-          onPress: () => {
-            router.push("/(tabs)/home");
-          }
-        },
-        secondaryButton: {
-          text: 'Schedule Another',
-          onPress: () => {
-            // Reset form for another pickup
-            setForm({
-              deviceType: "",
-              brand: "",
-              model: "",
-              purchaseDate: "",
-              condition: "",
-              weight: "",
-              notes: "",
-              pickupAddress: "",
-              city: "",
-              state: "",
-              pincode: "",
-              preferredPickupDate: "",
-            });
-            setDeviceImages([]);
-            setDocuments([]);
-            setCurrentSection(0);
-          }
-        }
-      });
-
-    } catch (err: any) {
-      console.error("Submit error:", err);
-      
-      // 🚨 Show beautiful error alert
-      showAlert({
-        type: 'error',
-        title: 'Oops! Something went wrong',
-        message: err.response?.data?.message || 'Failed to schedule pickup. Please check your internet connection and try again.',
-        primaryButton: {
-          text: 'Try Again',
-          onPress: () => {
-            // Just close the alert, user can retry
-          }
-        }
-      });
-    } finally {
-      setLoading(false);
-    }
+    // Show recycler selection popup instead of directly submitting
+    showRecyclerSelectionPopup();
   };
 
   // Next section handler
@@ -1173,6 +1264,167 @@ export default function PickupSchedule() {
                   className="absolute top-4 right-4 bg-black bg-opacity-50 rounded-full p-2"
                 >
                   <Ionicons name="close" size={24} color="white" />
+                </TouchableOpacity>
+              </View>
+            </View>
+          </Modal>
+          
+          {/* Recycler Selection Modal */}
+          <Modal
+            visible={showRecyclerModal}
+            animationType="slide"
+            presentationStyle="pageSheet"
+            onRequestClose={() => setShowRecyclerModal(false)}
+          >
+            <View className="flex-1 bg-green-50">
+              {/* Header */}
+              <View className="bg-green-600 px-6 pt-16 pb-4">
+                <View className="flex-row items-center justify-between">
+                  <Text className="text-white text-xl font-bold">Choose Your Recycler</Text>
+                  <TouchableOpacity
+                    onPress={() => setShowRecyclerModal(false)}
+                    className="bg-green-700 rounded-full p-2"
+                  >
+                    <Ionicons name="close" size={24} color="white" />
+                  </TouchableOpacity>
+                </View>
+                <Text className="text-green-100 text-sm mt-2">
+                  Select a recycler to handle your e-waste pickup
+                </Text>
+              </View>
+
+              {/* Recyclers List */}
+              <ScrollView className="flex-1 px-4 py-4">
+                {loadingRecyclers ? (
+                  <View className="flex-1 justify-center items-center py-20">
+                    <ActivityIndicator size="large" color="#059669" />
+                    <Text className="text-green-600 mt-4 text-center">Loading recyclers...</Text>
+                  </View>
+                ) : recyclers.length === 0 ? (
+                  <View className="flex-1 justify-center items-center py-20">
+                    <Ionicons name="business-outline" size={64} color="#9ca3af" />
+                    <Text className="text-gray-500 text-lg font-medium mt-4">No Recyclers Found</Text>
+                    <Text className="text-gray-400 text-center mt-2 px-8">
+                      No recyclers are currently available. Please try again later.
+                    </Text>
+                  </View>
+                ) : (
+                  recyclers.map((recycler, index) => (
+                    <View
+                      key={recycler.id}
+                      className={`bg-white rounded-2xl p-5 mb-4 shadow-sm border ${
+                        selectedRecycler?.id === recycler.id ? 'border-green-500 bg-green-50' : 'border-gray-200'
+                      }`}
+                    >
+                      {/* Company Header */}
+                      <View className="flex-row items-start justify-between mb-3">
+                        <View className="flex-1">
+                          <Text className="text-green-800 text-lg font-bold">{recycler.companyName}</Text>
+                          <Text className="text-green-600 text-sm">Owner: {recycler.ownerName}</Text>
+                        </View>
+                        <View className="bg-green-100 rounded-full px-3 py-1">
+                          <Text className="text-green-700 text-xs font-medium">#{index + 1}</Text>
+                        </View>
+                      </View>
+
+                      {/* Contact Info */}
+                      <View className="mb-3">
+                        <View className="flex-row items-center mb-1">
+                          <Ionicons name="mail" size={16} color="#059669" />
+                          <Text className="text-gray-700 text-sm ml-2">{recycler.email}</Text>
+                        </View>
+                        <View className="flex-row items-center mb-1">
+                          <Ionicons name="call" size={16} color="#059669" />
+                          <Text className="text-gray-700 text-sm ml-2">{recycler.phoneNumber}</Text>
+                        </View>
+                        <View className="flex-row items-center">
+                          <Ionicons name="location" size={16} color="#059669" />
+                          <Text className="text-gray-700 text-sm ml-2">{recycler.city}, {recycler.state} - {recycler.pincode}</Text>
+                        </View>
+                      </View>
+
+                      {/* Address */}
+                      <View className="mb-3 bg-gray-50 rounded-lg p-3">
+                        <Text className="text-gray-600 text-sm">{recycler.address}</Text>
+                      </View>
+
+                      {/* Services */}
+                      {recycler.servicesOffered && recycler.servicesOffered.length > 0 && (
+                        <View className="mb-3">
+                          <Text className="text-green-700 text-sm font-medium mb-2">Services Offered:</Text>
+                          <View className="flex-row flex-wrap">
+                            {recycler.servicesOffered.map((service, serviceIndex) => (
+                              <View key={serviceIndex} className="bg-blue-100 rounded-full px-3 py-1 mr-2 mb-2">
+                                <Text className="text-blue-700 text-xs">{service}</Text>
+                              </View>
+                            ))}
+                          </View>
+                        </View>
+                      )}
+
+                      {/* Operating Hours */}
+                      <View className="mb-4">
+                        <View className="flex-row items-center">
+                          <Ionicons name="time" size={16} color="#059669" />
+                          <Text className="text-green-700 text-sm font-medium ml-2">Operating Hours:</Text>
+                        </View>
+                        <Text className="text-gray-600 text-sm ml-6">{recycler.operatingHours}</Text>
+                      </View>
+
+                      {/* Website */}
+                      {recycler.website && (
+                        <View className="mb-4">
+                          <View className="flex-row items-center">
+                            <Ionicons name="globe" size={16} color="#059669" />
+                            <Text className="text-blue-600 text-sm ml-2">{recycler.website}</Text>
+                          </View>
+                        </View>
+                      )}
+
+                      {/* Description */}
+                      {recycler.description && (
+                        <View className="mb-4 bg-green-50 rounded-lg p-3">
+                          <Text className="text-green-700 text-sm font-medium mb-1">About:</Text>
+                          <Text className="text-green-600 text-sm">{recycler.description}</Text>
+                        </View>
+                      )}
+
+                      {/* Selection Button */}
+                      <TouchableOpacity
+                        onPress={() => {
+                          setSelectedRecycler(recycler);
+                          setShowRecyclerModal(false);
+                          proceedWithSubmission();
+                        }}
+                        className={`rounded-xl p-4 items-center justify-center ${
+                          selectedRecycler?.id === recycler.id
+                            ? 'bg-green-600'
+                            : 'bg-green-500'
+                        }`}
+                        style={{
+                          shadowColor: "#059669",
+                          shadowOffset: { width: 0, height: 2 },
+                          shadowOpacity: 0.2,
+                          shadowRadius: 4,
+                          elevation: 3,
+                        }}
+                      >
+                        <Text className="text-white font-semibold text-base">
+                          {selectedRecycler?.id === recycler.id ? '✓ Selected - Schedule Pickup' : 'Select This Recycler'}
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
+                  ))
+                )}
+              </ScrollView>
+
+              {/* Bottom Actions */}
+              <View className="bg-white border-t border-gray-200 px-4 py-4">
+                <TouchableOpacity
+                  onPress={() => setShowRecyclerModal(false)}
+                  className="bg-gray-100 rounded-xl p-4 items-center justify-center"
+                >
+                  <Text className="text-gray-700 font-medium">Cancel Selection</Text>
                 </TouchableOpacity>
               </View>
             </View>
