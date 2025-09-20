@@ -41,6 +41,27 @@ const sendOTPEmail = async (email, otp, type = 'verification') => {
   }
 };
 
+// Generic email sending function
+const sendEmail = async (to, subject, text, html = null) => {
+  const mailOptions = {
+    from: process.env.EMAIL_FROM,
+    to,
+    subject,
+    text,
+    ...(html && { html })
+  };
+
+  try {
+    const result = await transporter.sendMail(mailOptions);
+    console.log('Email sent successfully:', result.messageId);
+    return true;
+  } catch (error) {
+    console.error('Email sending failed:', error);
+    throw new Error('Failed to send email: ' + error.message);
+  }
+};
+
 module.exports = {
-  sendOTPEmail
+  sendOTPEmail,
+  sendEmail
 };

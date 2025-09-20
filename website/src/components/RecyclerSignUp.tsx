@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Eye, EyeOff, User, Mail, Phone, Building, MapPin, ArrowLeft } from 'lucide-react';
 import { authAPI } from '../services/completeAPI';
+import LegalAgreementModal from './LegalAgreementModal';
 
 interface RecyclerSignUpProps {
   onSignUp: () => void;
@@ -32,6 +33,8 @@ const RecyclerSignUp: React.FC<RecyclerSignUpProps> = ({ onSignUp, onBackToLogin
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
   const [otpError, setOtpError] = useState('');
   const [isVerifyingOTP, setIsVerifyingOTP] = useState(false);
+  const [showLegalModal, setShowLegalModal] = useState(false);
+  const [legalAccepted, setLegalAccepted] = useState(false);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({
@@ -188,6 +191,30 @@ const RecyclerSignUp: React.FC<RecyclerSignUpProps> = ({ onSignUp, onBackToLogin
       return;
     }
 
+    // Check if legal agreement was already accepted
+    if (legalAccepted) {
+      await proceedWithRegistration();
+      return;
+    }
+
+    // Show legal agreement modal before proceeding
+    setShowLegalModal(true);
+  };
+
+  const handleLegalAccept = async () => {
+    setLegalAccepted(true);
+    setShowLegalModal(false);
+    
+    // Now proceed with actual registration
+    await proceedWithRegistration();
+  };
+
+  const handleLegalDecline = () => {
+    setShowLegalModal(false);
+    setError('You must accept the terms and conditions to proceed with registration.');
+  };
+
+  const proceedWithRegistration = async () => {
     setLoading(true);
     setError('');
 
@@ -626,6 +653,15 @@ const RecyclerSignUp: React.FC<RecyclerSignUpProps> = ({ onSignUp, onBackToLogin
           </div>
         </div>
       </div>
+
+      {/* Legal Agreement Modal */}
+      <LegalAgreementModal
+        isOpen={showLegalModal}
+        onClose={() => setShowLegalModal(false)}
+        userType="recycler"
+        onAccept={handleLegalAccept}
+        onDecline={handleLegalDecline}
+      />
     </div>
   );
 };

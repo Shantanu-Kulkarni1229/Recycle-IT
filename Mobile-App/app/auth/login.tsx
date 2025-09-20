@@ -15,8 +15,8 @@ import {
 } from "react-native";
 import { useRouter } from "expo-router";
 import api from "../../api/api";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useUser } from "@/context/UserContext";
+import { storeAuthData } from "../../utils/auth";
 
 const Login: React.FC = () => {
   const router = useRouter();
@@ -37,10 +37,10 @@ const Login: React.FC = () => {
     try {
       const res = await api.post("users/login", { email, password });
 
-      // ✅ Save token
+      // ✅ Save token using auth utility
       if (res.data.token && res.data.user) {
-        await AsyncStorage.setItem("userToken", res.data.token);
-        setUserId(res.data.user._id); // 👈 store in context (also AsyncStorage handled)
+        await storeAuthData(res.data.token, res.data.user._id);
+        setUserId(res.data.user._id); // 👈 store in context
       }
 
       Alert.alert("Success", "Login Successful");

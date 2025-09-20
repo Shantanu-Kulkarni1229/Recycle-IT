@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { recyclerPickupAPI, ewasteAPI } from '../services/completeAPI';
 import { getRecyclerData, formatCurrency, formatDate, getStatusColor } from '../utils/helpers';
 import { DashboardStats, SchedulePickup, RecyclerPickup } from '../types';

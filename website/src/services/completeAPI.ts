@@ -116,6 +116,29 @@ export const ewasteAPI = {
 
 // Schedule Pickup APIs (for viewing pickups assigned to recycler)
 export const pickupAPI = {
+  getAllPickups: async (params?: {
+    status?: string;
+    page?: number;
+    limit?: number;
+    sortBy?: string;
+    sortOrder?: string;
+    city?: string;
+    state?: string;
+    fromDate?: string;
+    toDate?: string;
+  }) => {
+    const queryParams = new URLSearchParams();
+    if (params) {
+      Object.entries(params).forEach(([key, value]) => {
+        if (value !== undefined && value !== null) {
+          queryParams.append(key, value.toString());
+        }
+      });
+    }
+    const response = await api.get(`/schedule-pickup?${queryParams.toString()}`);
+    return response.data;
+  },
+
   getPickupById: async (id: string) => {
     const response = await api.get(`/schedule-pickup/${id}`);
     return response.data;
@@ -138,6 +161,11 @@ export const pickupAPI = {
 
   assignRecycler: async (id: string, recyclerId: string) => {
     const response = await api.put(`/schedule-pickup/${id}/assign-recycler`, { recyclerId });
+    return response.data;
+  },
+
+  assignDeliveryPartner: async (id: string, deliveryPartnerId: string) => {
+    const response = await api.put(`/schedule-pickup/${id}/assign-partner`, { deliveryPartnerId });
     return response.data;
   },
 };

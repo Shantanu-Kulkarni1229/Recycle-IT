@@ -6,14 +6,21 @@ import Login from './components/Login';
 import RecyclerSignUp from './components/RecyclerSignUp';
 import Layout from './components/Layout';
 import AdminApp from './components/AdminApp';
+import TermsAndConditions from './components/TermsAndConditions';
+import CodeOfConduct from './components/CodeOfConduct';
 
 // Pages
 import RecyclerDashboard from './pages/RecyclerDashboard';
 import Profile from './pages/Profile';
 import PickupManagement from './pages/PickupManagement';
-import EwasteInspection from './pages/EwasteInspection';
 import DocumentUpload from './pages/DocumentUpload';
+import EwasteInspection from './pages/EwasteInspection';
 import PaymentManagement from './pages/PaymentManagement';
+import PaymentPage from './pages/PaymentPage';
+import PaymentTest from './pages/PaymentTest';
+import MyDeliveryPartners from './pages/MyDeliveryPartners';
+import AddDeliveryPartner from './pages/AddDeliveryPartner';
+import MyTestimonials from './pages/MyTestimonials';
 
 // Utils
 import { isAuthenticated } from './utils/helpers';
@@ -83,6 +90,14 @@ function App() {
         <Route path="/admin" element={<AdminApp />} />
         <Route path="/admin/*" element={<AdminApp />} />
         
+        {/* Public Legal Documents */}
+        <Route path="/terms-recycler" element={<TermsAndConditions userType="recycler" />} />
+        <Route path="/terms-delivery" element={<TermsAndConditions userType="delivery" />} />
+        <Route path="/terms" element={<TermsAndConditions userType="general" />} />
+        <Route path="/code-of-conduct-pickup" element={<CodeOfConduct staffType="pickup" />} />
+        <Route path="/code-of-conduct-delivery" element={<CodeOfConduct staffType="delivery" />} />
+        <Route path="/code-of-conduct" element={<CodeOfConduct staffType="general" />} />
+        
         {/* Recycler Login/Signup Routes */}
         {!isLoggedIn && (
           <>
@@ -120,6 +135,15 @@ function App() {
                 <Route path="/ewaste-inspection" element={<EwasteInspection />} />
                 <Route path="/document-upload" element={<DocumentUpload />} />
                 <Route path="/payment-management" element={<PaymentManagement />} />
+                <Route path="/payment" element={<PaymentPage />} />
+                <Route path="/payment-test" element={<PaymentTest />} />
+                <Route path="/my-delivery-partners" element={<MyDeliveryPartners />} />
+                <Route path="/add-delivery-partner" element={<AddDeliveryPartner />} />
+                <Route path="/my-testimonials" element={<MyTestimonials />} />
+                <Route path="/terms-recycler" element={<TermsAndConditions userType="recycler" />} />
+                <Route path="/terms-delivery" element={<TermsAndConditions userType="delivery" />} />
+                <Route path="/code-of-conduct-pickup" element={<CodeOfConduct staffType="pickup" />} />
+                <Route path="/code-of-conduct-delivery" element={<CodeOfConduct staffType="delivery" />} />
                 <Route path="*" element={<Navigate to="/dashboard" replace />} />
               </Routes>
             </Layout>

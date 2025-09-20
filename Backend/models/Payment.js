@@ -30,7 +30,7 @@ const paymentSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ['pending', 'success', 'failed'],
+    enum: ['pending', 'success', 'failed', 'captured', 'refunded'],
     default: 'pending',
     index: true,
   },
@@ -67,6 +67,25 @@ const paymentSchema = new mongoose.Schema({
   webhookProcessed: {
     type: Boolean,
     default: false,
+  },
+  // Refund information
+  refund: {
+    refundId: {
+      type: String,
+      default: null,
+    },
+    amount: {
+      type: Number,
+      default: null,
+    },
+    reason: {
+      type: String,
+      default: null,
+    },
+    processedAt: {
+      type: Date,
+      default: null,
+    },
   },
 }, {
   timestamps: true, // Adds createdAt and updatedAt fields

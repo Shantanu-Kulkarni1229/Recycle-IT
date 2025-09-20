@@ -1,16 +1,19 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { 
-  View, Text, TextInput, TouchableOpacity, Alert, ScrollView, Platform, ActivityIndicator, 
-  Animated, Easing, Dimensions, Image, Modal, FlatList, KeyboardAvoidingView,
-  TouchableWithoutFeedback, Keyboard, StyleSheet
+  View, Text, TextInput, TouchableOpacity, ScrollView, Platform, ActivityIndicator, 
+  Animated, Easing, Dimensions, Image, Modal, KeyboardAvoidingView,
+  TouchableWithoutFeedback, Keyboard
 } from "react-native";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import * as ImagePicker from 'expo-image-picker';
 import * as DocumentPicker from 'expo-document-picker';
+import * as Location from 'expo-location';
 import { useUser } from "@/context/UserContext";
 import api from "../api/api";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
+import { useCustomAlert } from "../components/CustomAlert";
+import { schedulePickupNotification, requestNotificationPermissions } from "../utils/notifications";
 
 const { width } = Dimensions.get('window');
 const deviceConditions = [
@@ -40,6 +43,8 @@ type FormData = {
   pincode: string;
   preferredPickupDate: string;
   customDeviceType?: string;
+  latitude?: number;
+  longitude?: number;
 };
 
 type DeviceImage = { uri: string; name: string; type: string };
@@ -50,6 +55,8 @@ export default function PickupSchedule() {
   const router = useRouter();
   const { userId } = useUser();
   const scrollViewRef = useRef<ScrollView>(null);
+  const { showAlert, AlertComponent } = useCustomAlert();
+  
   const [form, setForm] = useState<FormData>({
     deviceType: "",
     brand: "",
@@ -69,7 +76,6 @@ export default function PickupSchedule() {
   const [deviceImages, setDeviceImages] = useState<DeviceImage[]>([]);
   const [documents, setDocuments] = useState<DocumentFile[]>([]);
   const [showImageOptions, setShowImageOptions] = useState(false);
-  const [showDocumentOptions, setShowDocumentOptions] = useState(false);
   const [imagePreviewModal, setImagePreviewModal] = useState(false);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   
@@ -79,6 +85,7 @@ export default function PickupSchedule() {
   const [currentSection, setCurrentSection] = useState(0);
   const fadeAnim = useState(new Animated.Value(1))[0];
   const slideAnim = useState(new Animated.Value(0))[0];
+  const [isFetchingLocation, setIsFetchingLocation] = useState(false);
 
   // Error state for each field
   const [errors, setErrors] = useState<Errors>({});
@@ -86,6 +93,8 @@ export default function PickupSchedule() {
   // Request permissions on component mount
   useEffect(() => {
     requestPermissions();
+    // Also request notification permissions
+    requestNotificationPermissions();
   }, []);
 
   const requestPermissions = async () => {
@@ -99,6 +108,73 @@ export default function PickupSchedule() {
     const mediaPermission = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (mediaPermission.status !== 'granted') {
       console.log('Media library permission not granted');
+    }
+
+    // Request location permission
+    const locationPermission = await Location.requestForegroundPermissionsAsync();
+    if (locationPermission.status !== 'granted') {
+      console.log('Location permission not granted');
+    }
+  };
+
+  // Function to fetch current location
+  const fetchCurrentLocation = async () => {
+    setIsFetchingLocation(true);
+    try {
+      // Check if location permission is granted
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        showAlert({
+          type: 'warning',
+          title: 'Permission Required',
+          message: 'Please enable location permissions in your device settings to use this feature.',
+        });
+        setIsFetchingLocation(false);
+        return;
+      }
+
+      // Get current position
+      const location = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.Balanced,
+      });
+
+      const { latitude, longitude } = location.coords;
+      
+      // Reverse geocode to get address details
+      const geocode = await Location.reverseGeocodeAsync({
+        latitude,
+        longitude,
+      });
+
+      if (geocode.length > 0) {
+        const address = geocode[0];
+        
+        // Update form with location data
+        setForm(prev => ({
+          ...prev,
+          pickupAddress: `${address.name || ''} ${address.street || ''} ${address.streetNumber || ''}`.trim(),
+          city: address.city || '',
+          state: address.region || '',
+          pincode: address.postalCode || '',
+          latitude,
+          longitude,
+        }));
+
+        showAlert({
+          type: 'success',
+          title: 'Location Found! 📍',
+          message: 'Your current location has been successfully added to the address fields.',
+        });
+      }
+    } catch (error) {
+      console.error("Error fetching location:", error);
+      showAlert({
+        type: 'warning',
+        title: 'Location Access Failed',
+        message: 'Unable to fetch your current location. Please check your GPS settings or enter the address manually.',
+      });
+    } finally {
+      setIsFetchingLocation(false);
     }
   };
 
@@ -148,7 +224,12 @@ export default function PickupSchedule() {
         setDeviceImages(prev => [...prev, newImage]);
       }
     } catch (error) {
-      Alert.alert("Error", "Failed to take photo");
+      console.error("Error taking photo:", error);
+      showAlert({
+        type: 'error',
+        title: 'Camera Error',
+        message: 'Failed to take photo. Please check camera permissions.',
+      });
     }
     setShowImageOptions(false);
   };
@@ -172,7 +253,12 @@ export default function PickupSchedule() {
         setDeviceImages(prev => [...prev, ...newImages]);
       }
     } catch (error) {
-      Alert.alert("Error", "Failed to pick images");
+      console.error("Error picking images:", error);
+      showAlert({
+        type: 'error',
+        title: 'Gallery Error',
+        message: 'Failed to pick images from gallery. Please check permissions.',
+      });
     }
     setShowImageOptions(false);
   };
@@ -195,9 +281,13 @@ export default function PickupSchedule() {
         setDocuments(prev => [...prev, ...newDocuments]);
       }
     } catch (error) {
-      Alert.alert("Error", "Failed to pick documents");
+      console.error("Error picking documents:", error);
+      showAlert({
+        type: 'error',
+        title: 'Document Picker Error',
+        message: 'Failed to pick documents. Please try again.',
+      });
     }
-    setShowDocumentOptions(false);
   };
 
   // Remove image function
@@ -234,10 +324,33 @@ export default function PickupSchedule() {
   // Handle form submit with file uploads
   const handleSubmit = async () => {
     if (!userId) {
-      Alert.alert("Error", "User not logged in");
+      showAlert({
+        type: 'error',
+        title: 'Authentication Required',
+        message: 'Please log in to schedule a pickup.',
+        primaryButton: {
+          text: 'Go to Login',
+          onPress: () => router.push('/auth/login')
+        }
+      });
       return;
     }
-    if (!validate()) return;
+    
+    if (!validate()) {
+      showAlert({
+        type: 'warning',
+        title: 'Missing Information',
+        message: 'Please fill in all required fields before submitting.',
+        primaryButton: {
+          text: 'Review Form',
+          onPress: () => {
+            // Scroll to top to show errors
+            scrollViewRef.current?.scrollTo({ y: 0, animated: true });
+          }
+        }
+      });
+      return;
+    }
 
     setLoading(true);
     try {
@@ -280,18 +393,71 @@ export default function PickupSchedule() {
         } as any);
       });
 
-      const response = await api.post("schedule-pickup", formData, {
+      await api.post("schedule-pickup", formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
       });
 
-      Alert.alert("Success", "Pickup scheduled successfully!", [
-        { text: "OK", onPress: () => router.push("/(tabs)/home") }
-      ]);
+      // 🔔 Schedule notification for pickup
+      await schedulePickupNotification(
+        form.deviceType === "Other" ? form.customDeviceType || "Custom Device" : form.deviceType,
+        form.brand,
+        form.model,
+        form.preferredPickupDate
+      );
+
+      // 🎉 Show beautiful success alert
+      showAlert({
+        type: 'success',
+        title: '🎉 Pickup Scheduled Successfully!',
+        message: `Your ${form.brand} ${form.model} pickup has been scheduled for ${new Date(form.preferredPickupDate).toLocaleDateString()}. You'll receive a notification when our team is ready to collect your device.`,
+        primaryButton: {
+          text: 'Go to Home',
+          onPress: () => {
+            router.push("/(tabs)/home");
+          }
+        },
+        secondaryButton: {
+          text: 'Schedule Another',
+          onPress: () => {
+            // Reset form for another pickup
+            setForm({
+              deviceType: "",
+              brand: "",
+              model: "",
+              purchaseDate: "",
+              condition: "",
+              weight: "",
+              notes: "",
+              pickupAddress: "",
+              city: "",
+              state: "",
+              pincode: "",
+              preferredPickupDate: "",
+            });
+            setDeviceImages([]);
+            setDocuments([]);
+            setCurrentSection(0);
+          }
+        }
+      });
+
     } catch (err: any) {
       console.error("Submit error:", err);
-      Alert.alert("Error", err.response?.data?.message || "Failed to schedule pickup");
+      
+      // 🚨 Show beautiful error alert
+      showAlert({
+        type: 'error',
+        title: 'Oops! Something went wrong',
+        message: err.response?.data?.message || 'Failed to schedule pickup. Please check your internet connection and try again.',
+        primaryButton: {
+          text: 'Try Again',
+          onPress: () => {
+            // Just close the alert, user can retry
+          }
+        }
+      });
     } finally {
       setLoading(false);
     }
@@ -318,13 +484,6 @@ export default function PickupSchedule() {
     }
     animateSection();
   }, [currentSection, animateSection]);
-
-  // Focus management for inputs
-  const focusNextField = (nextField: any) => {
-    if (nextField && nextField.focus) {
-      nextField.focus();
-    }
-  };
 
   // Refs for inputs
   const brandRef = useRef<TextInput>(null);
@@ -674,12 +833,28 @@ export default function PickupSchedule() {
     </Animated.View>
   );
 
-  // Render address section
+  // Render address section with location button
   const renderAddressInfo = () => (
     <Animated.View style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}>
       <Text className="text-green-700 text-xl font-bold mb-6 text-center">
         Pickup Address
       </Text>
+
+      {/* Location Fetch Button */}
+      <TouchableOpacity
+        onPress={fetchCurrentLocation}
+        disabled={isFetchingLocation}
+        className="bg-blue-500 rounded-2xl p-4 flex-row items-center justify-center mb-6"
+      >
+        {isFetchingLocation ? (
+          <ActivityIndicator color="#fff" size="small" />
+        ) : (
+          <>
+            <Ionicons name="location" size={20} color="#fff" />
+            <Text className="text-white font-medium ml-2">Use My Current Location</Text>
+          </>
+        )}
+      </TouchableOpacity>
 
       {/* Pickup Address */}
       <View className="mb-5">
@@ -1002,6 +1177,9 @@ export default function PickupSchedule() {
               </View>
             </View>
           </Modal>
+          
+          {/* Custom Alert Component */}
+          <AlertComponent />
         </View>
       </TouchableWithoutFeedback>
     </KeyboardAvoidingView>

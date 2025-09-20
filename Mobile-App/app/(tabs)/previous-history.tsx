@@ -11,6 +11,8 @@ import {
   Animated,
   Dimensions,
   StatusBar,
+  TextInput,
+  Linking,
 } from "react-native";
 import { useUser } from "@/context/UserContext";
 import api from "../../api/api";
@@ -25,6 +27,10 @@ import {
   Clock,
   Package,
   Smartphone,
+  Star,
+  Phone,
+  Mail,
+  Globe,
 } from "lucide-react-native";
 
 const { height: screenHeight } = Dimensions.get('window');
@@ -45,43 +51,52 @@ type Pickup = {
   notes?: string;
   weight?: string;
   userId?: string;
+  assignedRecyclerId?: string | { name: string; [key: string]: any };
 };
 
-const statusColors: Record<string, { bg: string; text: string; card: string }> = {
-  Pending: { 
-    bg: "bg-amber-100", 
-    text: "text-amber-800",
-    card: "bg-amber-50"
+// Map backend status to user-friendly label and color
+const statusMap: Record<string, { label: string; bg: string; text: string; card: string }> = {
+  Pending: {
+    label: 'Pending',
+    bg: 'bg-red-100',
+    text: 'text-red-800',
+    card: 'bg-red-50',
   },
-  Scheduled: { 
-    bg: "bg-blue-100", 
-    text: "text-blue-800",
-    card: "bg-blue-50"
+  Scheduled: {
+    label: 'Approved',
+    bg: 'bg-green-100',
+    text: 'text-green-800',
+    card: 'bg-green-50',
   },
-  "In Transit": { 
-    bg: "bg-purple-100", 
-    text: "text-purple-800",
-    card: "bg-purple-50"
+  'In Transit': {
+    label: 'In Transit',
+    bg: 'bg-blue-100',
+    text: 'text-blue-800',
+    card: 'bg-blue-50',
   },
-  Collected: { 
-    bg: "bg-emerald-100", 
-    text: "text-emerald-800",
-    card: "bg-emerald-50"
+  Collected: {
+    label: 'Collected',
+    bg: 'bg-emerald-100',
+    text: 'text-emerald-800',
+    card: 'bg-emerald-50',
   },
-  Delivered: { 
-    bg: "bg-green-100", 
-    text: "text-green-800",
-    card: "bg-green-50"
+  Delivered: {
+    label: 'Delivered',
+    bg: 'bg-teal-100',
+    text: 'text-teal-800',
+    card: 'bg-teal-50',
   },
-  Verified: { 
-    bg: "bg-teal-100", 
-    text: "text-teal-800",
-    card: "bg-teal-50"
+  Verified: {
+    label: 'Verified',
+    bg: 'bg-purple-100',
+    text: 'text-purple-800',
+    card: 'bg-purple-50',
   },
-  Cancelled: { 
-    bg: "bg-red-100", 
-    text: "text-red-800",
-    card: "bg-red-50"
+  Cancelled: {
+    label: 'Cancelled',
+    bg: 'bg-red-100',
+    text: 'text-red-800',
+    card: 'bg-red-50',
   },
 };
 
@@ -103,13 +118,125 @@ export default function PreviousHistory() {
   const [modalVisible, setModalVisible] = useState(false);
   const [modalPickup, setModalPickup] = useState<Pickup | null>(null);
   const [trackInfo, setTrackInfo] = useState<any>(null);
-  const [modalType, setModalType] = useState<'details' | 'track'>('details');
+  const [modalType, setModalType] = useState<'details' | 'track' | 'testimonial'>('details');
   const [modalLoading, setModalLoading] = useState(false);
+
+  // Testimonial modal state
+  const [testimonialRating, setTestimonialRating] = useState(0);
+  const [testimonialFeedback, setTestimonialFeedback] = useState('');
+  const [submittingTestimonial, setSubmittingTestimonial] = useState(false);
+
+  // Recycler data cache
+  const [recyclerCache, setRecyclerCache] = useState<Record<string, { 
+    name: string; 
+    companyName?: string;
+    email?: string;
+    phoneNumber?: string;
+    address?: string;
+    city?: string;
+    state?: string;
+    pincode?: string;
+    servicesOffered?: string[];
+    operatingHours?: string;
+    website?: string;
+    description?: string;
+  }>>({});
+  const [fetchingRecyclers, setFetchingRecyclers] = useState<Set<string>>(new Set());
 
   // Animation values
   const fadeAnim = useState(new Animated.Value(0))[0];
   const slideAnim = useState(new Animated.Value(50))[0];
   const scaleAnim = useState(new Animated.Value(0.9))[0];
+
+  // Fetch recycler details by ID
+  const fetchRecyclerById = useCallback(async (recyclerId: string) => {
+    // Check if already cached
+    if (recyclerCache[recyclerId]) {
+      return recyclerCache[recyclerId];
+    }
+
+    // Check if already fetching to avoid duplicate requests
+    if (fetchingRecyclers.has(recyclerId)) {
+      return null;
+    }
+
+    try {
+      setFetchingRecyclers(prev => new Set(prev).add(recyclerId));
+      
+      console.log("Fetching recycler details for ID:", recyclerId);
+      const response = await api.get(`users/recyclers/${recyclerId}`);
+      
+      const recyclerData = response.data.data || response.data;
+      const recyclerInfo = {
+        name: recyclerData.ownerName || recyclerData.name || 'Unknown Recycler',
+        companyName: recyclerData.companyName,
+        email: recyclerData.email,
+        phoneNumber: recyclerData.phoneNumber,
+        address: recyclerData.address,
+        city: recyclerData.city,
+        state: recyclerData.state,
+        pincode: recyclerData.pincode,
+        servicesOffered: recyclerData.servicesOffered,
+        operatingHours: recyclerData.operatingHours,
+        website: recyclerData.website,
+        description: recyclerData.description
+      };
+      
+      // Cache the result
+      setRecyclerCache(prev => ({
+        ...prev,
+        [recyclerId]: recyclerInfo
+      }));
+      
+      console.log("Cached recycler info:", recyclerInfo);
+      return recyclerInfo;
+    } catch (err: any) {
+      console.error("Error fetching recycler:", err);
+      // Cache a default value to avoid repeated failed requests
+      const defaultInfo = { name: 'Unknown Recycler' };
+      setRecyclerCache(prev => ({
+        ...prev,
+        [recyclerId]: defaultInfo
+      }));
+      return defaultInfo;
+    } finally {
+      setFetchingRecyclers(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(recyclerId);
+        return newSet;
+      });
+    }
+  }, [recyclerCache, fetchingRecyclers, setRecyclerCache, setFetchingRecyclers]);
+
+  // Get recycler display name
+  const getRecyclerDisplayName = useCallback((assignedRecyclerId: string | { name: string; [key: string]: any } | undefined) => {
+    if (!assignedRecyclerId) {
+      return 'No recycler assigned';
+    }
+
+    // If it's already an object with name
+    if (typeof assignedRecyclerId === 'object' && assignedRecyclerId.name) {
+      return assignedRecyclerId.name;
+    }
+
+    // If it's a string ID, check cache first
+    if (typeof assignedRecyclerId === 'string') {
+      const cachedRecycler = recyclerCache[assignedRecyclerId];
+      if (cachedRecycler) {
+        // Show company name if available, followed by owner name in parentheses
+        if (cachedRecycler.companyName && cachedRecycler.name !== cachedRecycler.companyName) {
+          return `${cachedRecycler.companyName} (${cachedRecycler.name})`;
+        }
+        return cachedRecycler.companyName || cachedRecycler.name;
+      }
+      
+      // Trigger fetch (async) and return loading state
+      fetchRecyclerById(assignedRecyclerId);
+      return 'Loading recycler...';
+    }
+
+    return 'Unknown recycler';
+  }, [recyclerCache, fetchRecyclerById]);
 
   // Fetch pickups
   const fetchPickups = useCallback(async () => {
@@ -127,7 +254,21 @@ export default function PreviousHistory() {
       const res = await api.get(`schedule-pickup/user/${userId}`);
       console.log("Pickups response:", res.data);
       
-      setPickups(res.data.data || res.data || []);
+      const pickupsData = res.data.data || res.data || [];
+      setPickups(pickupsData);
+      
+      // Prefetch recycler data for pickups with string IDs
+      const recyclerIds = pickupsData
+        .map((pickup: Pickup) => pickup.assignedRecyclerId)
+        .filter((id: any) => typeof id === 'string' && id.length > 0)
+        .filter((id: string, index: number, arr: string[]) => arr.indexOf(id) === index); // Remove duplicates
+      
+      // Fetch recycler data for all unique IDs
+      recyclerIds.forEach((recyclerId: string) => {
+        if (!recyclerCache[recyclerId]) {
+          fetchRecyclerById(recyclerId);
+        }
+      });
       
       // Animate cards in
       Animated.parallel([
@@ -152,7 +293,7 @@ export default function PreviousHistory() {
       setError(err.response?.data?.message || "Failed to fetch history");
     }
     setLoading(false);
-  }, [userId, fadeAnim, slideAnim, scaleAnim]);
+  }, [userId, fadeAnim, slideAnim, scaleAnim, recyclerCache, fetchRecyclerById]);
 
   useEffect(() => {
     fetchPickups();
@@ -405,11 +546,90 @@ export default function PreviousHistory() {
     setModalPickup(null);
     setTrackInfo(null);
     setModalLoading(false);
+    // Reset testimonial fields
+    setTestimonialRating(0);
+    setTestimonialFeedback('');
+    setSubmittingTestimonial(false);
+  };
+
+  // Open testimonial modal
+  const openTestimonialModal = (pickup: Pickup) => {
+    console.log("Opening testimonial modal for pickup:", pickup._id);
+    
+    // Check if pickup has an assigned recycler
+    if (!pickup.assignedRecyclerId) {
+      Alert.alert("Error", "No recycler assigned to this pickup");
+      return;
+    }
+    
+    setModalType('testimonial');
+    setModalPickup(pickup);
+    setModalVisible(true);
+    setTestimonialRating(0);
+    setTestimonialFeedback('');
+  };
+
+  // Submit testimonial
+  const submitTestimonial = async () => {
+    if (!modalPickup || !modalPickup.assignedRecyclerId || !userId) {
+      Alert.alert("Error", "Missing required information");
+      return;
+    }
+
+    if (testimonialRating === 0) {
+      Alert.alert("Please provide a rating", "Please select a star rating before submitting");
+      return;
+    }
+
+    if (testimonialFeedback.trim().length < 10) {
+      Alert.alert("Please provide feedback", "Please write at least 10 characters of feedback");
+      return;
+    }
+
+    setSubmittingTestimonial(true);
+
+    try {
+      const recyclerId = typeof modalPickup.assignedRecyclerId === 'object' 
+        ? modalPickup.assignedRecyclerId._id || modalPickup.assignedRecyclerId.id
+        : modalPickup.assignedRecyclerId;
+
+      const testimonialData = {
+        recyclerId,
+        userId,
+        feedback: testimonialFeedback.trim(),
+        rating: testimonialRating
+      };
+
+      console.log("Submitting testimonial:", testimonialData);
+      
+      const response = await api.post('testimonials', testimonialData);
+      
+      console.log("Testimonial submitted successfully:", response.data);
+      
+      Alert.alert(
+        "Thank you!",
+        "Your feedback has been submitted successfully.",
+        [
+          {
+            text: "OK",
+            onPress: () => closeModal()
+          }
+        ]
+      );
+    } catch (err: any) {
+      console.error("Error submitting testimonial:", err);
+      Alert.alert(
+        "Error",
+        err.response?.data?.message || "Failed to submit feedback. Please try again."
+      );
+    } finally {
+      setSubmittingTestimonial(false);
+    }
   };
 
   const renderPickupCard = (pickup: Pickup, index: number) => {
     const DeviceIcon = getDeviceIcon(pickup.deviceType);
-    const statusStyle = statusColors[pickup.pickupStatus] || statusColors.Pending;
+  const statusStyle = statusMap[pickup.pickupStatus] || statusMap.Pending;
 
     return (
       <Animated.View
@@ -437,7 +657,7 @@ export default function PreviousHistory() {
               </View>
               <View className="bg-white/90 px-3 py-1 rounded-full">
                 <Text className={`text-xs font-semibold ${statusStyle.text}`}>
-                  {pickup.pickupStatus}
+                  {statusStyle.label}
                 </Text>
               </View>
             </View>
@@ -459,6 +679,42 @@ export default function PreviousHistory() {
                     Condition: {pickup.condition}
                   </Text>
                 </View>
+                {/* Assigned Recycler - show whenever recycler is assigned */}
+                {pickup.assignedRecyclerId && (
+                  <View className="mb-2">
+                    <View className="flex-row items-center mb-1">
+                      <Truck size={16} color="#059669" />
+                      <Text className="text-emerald-700 ml-2 font-medium">
+                        Recycler: {getRecyclerDisplayName(pickup.assignedRecyclerId)}
+                      </Text>
+                    </View>
+                    {(() => {
+                      const recyclerData = typeof pickup.assignedRecyclerId === 'object' 
+                        ? pickup.assignedRecyclerId 
+                        : (typeof pickup.assignedRecyclerId === 'string' 
+                            ? recyclerCache[pickup.assignedRecyclerId] 
+                            : null);
+                      
+                      if (recyclerData && (recyclerData.phoneNumber || recyclerData.email)) {
+                        return (
+                          <View className="ml-6">
+                            {recyclerData.phoneNumber && (
+                              <Text className="text-emerald-600 text-sm">
+                                📞 {recyclerData.phoneNumber}
+                              </Text>
+                            )}
+                            {recyclerData.email && (
+                              <Text className="text-emerald-600 text-sm">
+                                ✉️ {recyclerData.email}
+                              </Text>
+                            )}
+                          </View>
+                        );
+                      }
+                      return null;
+                    })()}
+                  </View>
+                )}
               </View>
             </View>
 
@@ -593,6 +849,36 @@ export default function PreviousHistory() {
                   </Text>
                 </TouchableOpacity>
               )}
+
+              {/* Rate Recycler button - only show for completed pickups with assigned recycler */}
+              {["Collected", "Delivered", "Verified"].includes(pickup.pickupStatus) && 
+               pickup.assignedRecyclerId && (
+                <TouchableOpacity
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    paddingHorizontal: 16,
+                    paddingVertical: 8,
+                    backgroundColor: '#f59e0b',
+                    borderRadius: 12,
+                    shadowColor: '#f59e0b',
+                    shadowOffset: { width: 0, height: 2 },
+                    shadowOpacity: 0.2,
+                    shadowRadius: 4,
+                    elevation: 2,
+                  }}
+                  onPress={() => {
+                    console.log("Rate Recycler button pressed for pickup:", pickup._id);
+                    openTestimonialModal(pickup);
+                  }}
+                  activeOpacity={0.8}
+                >
+                  <Star size={16} color="white" />
+                  <Text style={{ marginLeft: 8, color: 'white', fontSize: 14, fontWeight: '500' }}>
+                    Rate Recycler
+                  </Text>
+                </TouchableOpacity>
+              )}
             </View>
           </View>
         </View>
@@ -712,7 +998,8 @@ export default function PreviousHistory() {
                 fontWeight: 'bold',
                 color: '#1f2937'
               }}>
-                {modalType === 'track' ? "Pickup Tracking" : "Pickup Details"}
+                {modalType === 'track' ? "Pickup Tracking" : 
+                 modalType === 'testimonial' ? "Rate Recycler" : "Pickup Details"}
               </Text>
               <TouchableOpacity
                 onPress={closeModal}
@@ -790,6 +1077,375 @@ export default function PreviousHistory() {
                       )}
                     </View>
                   </View>
+
+                  {/* Recycler Information */}
+                  {modalPickup.assignedRecyclerId ? (
+                    <View style={{
+                      backgroundColor: '#f0fdf4',
+                      borderRadius: 16,
+                      padding: 20,
+                      marginBottom: 16,
+                      borderWidth: 2,
+                      borderColor: '#bbf7d0',
+                      elevation: 2,
+                      shadowColor: '#000',
+                      shadowOffset: { width: 0, height: 2 },
+                      shadowOpacity: 0.1,
+                      shadowRadius: 4,
+                    }}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 16 }}>
+                        <View style={{
+                          backgroundColor: '#059669',
+                          borderRadius: 8,
+                          padding: 8,
+                          marginRight: 12
+                        }}>
+                          <Package size={20} color="#ffffff" />
+                        </View>
+                        <Text style={{
+                          fontSize: 20,
+                          fontWeight: '700',
+                          color: '#047857',
+                          flex: 1
+                        }}>
+                          Assigned Recycler Details
+                        </Text>
+                      </View>
+                      
+                      {(() => {
+                        const recyclerData = typeof modalPickup.assignedRecyclerId === 'object' 
+                          ? modalPickup.assignedRecyclerId 
+                          : recyclerCache[modalPickup.assignedRecyclerId];
+                        
+                        if (!recyclerData) {
+                          return (
+                            <View style={{ 
+                              flexDirection: 'row', 
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              paddingVertical: 20
+                            }}>
+                              <ActivityIndicator size="small" color="#059669" />
+                              <Text style={{ color: '#047857', marginLeft: 8, fontSize: 16 }}>
+                                Loading recycler details...
+                              </Text>
+                            </View>
+                          );
+                        }
+
+                        return (
+                          <View style={{ gap: 12 }}>
+                            {/* Recycler Name & Company */}
+                            <View style={{
+                              backgroundColor: '#ffffff',
+                              borderRadius: 12,
+                              padding: 16,
+                              borderWidth: 1,
+                              borderColor: '#d1fae5'
+                            }}>
+                              <Text style={{
+                                fontSize: 18,
+                                fontWeight: '700',
+                                color: '#1f2937',
+                                marginBottom: 8
+                              }}>
+                                {recyclerData.companyName || recyclerData.name}
+                              </Text>
+                              {recyclerData.companyName && recyclerData.name && (
+                                <Text style={{
+                                  fontSize: 14,
+                                  color: '#6b7280',
+                                  fontStyle: 'italic'
+                                }}>
+                                  Owner: {recyclerData.name}
+                                </Text>
+                              )}
+                            </View>
+
+                            {/* Contact Information */}
+                            <View style={{
+                              backgroundColor: '#ffffff',
+                              borderRadius: 12,
+                              padding: 16,
+                              borderWidth: 1,
+                              borderColor: '#d1fae5'
+                            }}>
+                              <Text style={{
+                                fontSize: 16,
+                                fontWeight: '600',
+                                color: '#047857',
+                                marginBottom: 16
+                              }}>
+                                Contact Information
+                              </Text>
+                              
+                              {/* Contact Action Buttons */}
+                              <View style={{ gap: 10 }}>
+                                {recyclerData.phoneNumber && (
+                                  <TouchableOpacity
+                                    style={{
+                                      flexDirection: 'row',
+                                      alignItems: 'center',
+                                      backgroundColor: '#059669',
+                                      borderRadius: 10,
+                                      padding: 12,
+                                      elevation: 2,
+                                      shadowColor: '#000',
+                                      shadowOffset: { width: 0, height: 2 },
+                                      shadowOpacity: 0.1,
+                                      shadowRadius: 4,
+                                    }}
+                                    onPress={() => {
+                                      Linking.openURL(`tel:${recyclerData.phoneNumber}`).catch(() => {
+                                        Alert.alert('Error', 'Unable to make phone call');
+                                      });
+                                    }}
+                                    activeOpacity={0.8}
+                                  >
+                                    <Phone size={18} color="#ffffff" />
+                                    <Text style={{
+                                      color: '#ffffff',
+                                      fontWeight: '600',
+                                      fontSize: 15,
+                                      marginLeft: 10,
+                                      flex: 1
+                                    }}>
+                                      Call: {recyclerData.phoneNumber}
+                                    </Text>
+                                  </TouchableOpacity>
+                                )}
+                                
+                                {recyclerData.email && (
+                                  <TouchableOpacity
+                                    style={{
+                                      flexDirection: 'row',
+                                      alignItems: 'center',
+                                      backgroundColor: '#0369a1',
+                                      borderRadius: 10,
+                                      padding: 12,
+                                      elevation: 2,
+                                      shadowColor: '#000',
+                                      shadowOffset: { width: 0, height: 2 },
+                                      shadowOpacity: 0.1,
+                                      shadowRadius: 4,
+                                    }}
+                                    onPress={() => {
+                                      Linking.openURL(`mailto:${recyclerData.email}`).catch(() => {
+                                        Alert.alert('Error', 'Unable to open email client');
+                                      });
+                                    }}
+                                    activeOpacity={0.8}
+                                  >
+                                    <Mail size={18} color="#ffffff" />
+                                    <Text style={{
+                                      color: '#ffffff',
+                                      fontWeight: '600',
+                                      fontSize: 15,
+                                      marginLeft: 10,
+                                      flex: 1
+                                    }}>
+                                      Email: {recyclerData.email}
+                                    </Text>
+                                  </TouchableOpacity>
+                                )}
+                                
+                                {recyclerData.website && (
+                                  <TouchableOpacity
+                                    style={{
+                                      flexDirection: 'row',
+                                      alignItems: 'center',
+                                      backgroundColor: '#7c3aed',
+                                      borderRadius: 10,
+                                      padding: 12,
+                                      elevation: 2,
+                                      shadowColor: '#000',
+                                      shadowOffset: { width: 0, height: 2 },
+                                      shadowOpacity: 0.1,
+                                      shadowRadius: 4,
+                                    }}
+                                    onPress={() => {
+                                      let url = recyclerData.website;
+                                      if (!url.startsWith('http://') && !url.startsWith('https://')) {
+                                        url = 'https://' + url;
+                                      }
+                                      Linking.openURL(url).catch(() => {
+                                        Alert.alert('Error', 'Unable to open website');
+                                      });
+                                    }}
+                                    activeOpacity={0.8}
+                                  >
+                                    <Globe size={18} color="#ffffff" />
+                                    <Text style={{
+                                      color: '#ffffff',
+                                      fontWeight: '600',
+                                      fontSize: 15,
+                                      marginLeft: 10,
+                                      flex: 1
+                                    }}>
+                                      Visit Website
+                                    </Text>
+                                  </TouchableOpacity>
+                                )}
+                              </View>
+                            </View>
+
+                            {/* Address Information */}
+                            {(recyclerData.address || recyclerData.city || recyclerData.state) && (
+                              <View style={{
+                                backgroundColor: '#ffffff',
+                                borderRadius: 12,
+                                padding: 16,
+                                borderWidth: 1,
+                                borderColor: '#d1fae5'
+                              }}>
+                                <Text style={{
+                                  fontSize: 16,
+                                  fontWeight: '600',
+                                  color: '#047857',
+                                  marginBottom: 12
+                                }}>
+                                  Location
+                                </Text>
+                                <Text style={{ color: '#065f46', fontSize: 15, lineHeight: 22 }}>
+                                  {[recyclerData.address, recyclerData.city, recyclerData.state, recyclerData.pincode]
+                                    .filter(Boolean)
+                                    .join(', ')}
+                                </Text>
+                              </View>
+                            )}
+
+                            {/* Operating Hours */}
+                            {recyclerData.operatingHours && (
+                              <View style={{
+                                backgroundColor: '#ffffff',
+                                borderRadius: 12,
+                                padding: 16,
+                                borderWidth: 1,
+                                borderColor: '#d1fae5'
+                              }}>
+                                <Text style={{
+                                  fontSize: 16,
+                                  fontWeight: '600',
+                                  color: '#047857',
+                                  marginBottom: 8
+                                }}>
+                                  Operating Hours
+                                </Text>
+                                <Text style={{ color: '#065f46', fontSize: 15 }}>
+                                  {recyclerData.operatingHours}
+                                </Text>
+                              </View>
+                            )}
+
+                            {/* Services Offered */}
+                            {recyclerData.servicesOffered && recyclerData.servicesOffered.length > 0 && (
+                              <View style={{
+                                backgroundColor: '#ffffff',
+                                borderRadius: 12,
+                                padding: 16,
+                                borderWidth: 1,
+                                borderColor: '#d1fae5'
+                              }}>
+                                <Text style={{
+                                  fontSize: 16,
+                                  fontWeight: '600',
+                                  color: '#047857',
+                                  marginBottom: 12
+                                }}>
+                                  Services Offered
+                                </Text>
+                                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+                                  {recyclerData.servicesOffered.map((service: string, index: number) => (
+                                    <View key={index} style={{
+                                      backgroundColor: '#dcfce7',
+                                      borderRadius: 20,
+                                      paddingHorizontal: 12,
+                                      paddingVertical: 6,
+                                      borderWidth: 1,
+                                      borderColor: '#bbf7d0'
+                                    }}>
+                                      <Text style={{ color: '#047857', fontSize: 13, fontWeight: '500' }}>
+                                        {service}
+                                      </Text>
+                                    </View>
+                                  ))}
+                                </View>
+                              </View>
+                            )}
+
+                            {/* Description */}
+                            {recyclerData.description && (
+                              <View style={{
+                                backgroundColor: '#ffffff',
+                                borderRadius: 12,
+                                padding: 16,
+                                borderWidth: 1,
+                                borderColor: '#d1fae5'
+                              }}>
+                                <Text style={{
+                                  fontSize: 16,
+                                  fontWeight: '600',
+                                  color: '#047857',
+                                  marginBottom: 12
+                                }}>
+                                  About This Recycler
+                                </Text>
+                                <Text style={{ 
+                                  color: '#065f46', 
+                                  fontSize: 15, 
+                                  lineHeight: 22,
+                                  textAlign: 'justify'
+                                }}>
+                                  {recyclerData.description}
+                                </Text>
+                              </View>
+                            )}
+                          </View>
+                        );
+                      })()}
+                    </View>
+                  ) : (
+                    <View style={{
+                      backgroundColor: '#fef2f2',
+                      borderRadius: 16,
+                      padding: 20,
+                      marginBottom: 16,
+                      borderWidth: 2,
+                      borderColor: '#fecaca',
+                      elevation: 2,
+                      shadowColor: '#000',
+                      shadowOffset: { width: 0, height: 2 },
+                      shadowOpacity: 0.1,
+                      shadowRadius: 4,
+                    }}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
+                        <View style={{
+                          backgroundColor: '#dc2626',
+                          borderRadius: 8,
+                          padding: 8,
+                          marginRight: 12
+                        }}>
+                          <Info size={20} color="#ffffff" />
+                        </View>
+                        <Text style={{
+                          fontSize: 18,
+                          fontWeight: '700',
+                          color: '#dc2626',
+                          flex: 1
+                        }}>
+                          No Recycler Assigned
+                        </Text>
+                      </View>
+                      <Text style={{
+                        color: '#7f1d1d',
+                        fontSize: 15,
+                        lineHeight: 22,
+                        textAlign: 'center'
+                      }}>
+                        Your pickup request is pending assignment to a recycler. You will be notified once a recycler accepts your request.
+                      </Text>
+                    </View>
+                  )}
 
                   {/* Notes */}
                   {modalPickup.notes && (
@@ -888,10 +1544,204 @@ export default function PreviousHistory() {
                             backgroundColor: '#dcfce7',
                             borderRadius: 12
                           }}>
+                            <Text style={{ fontWeight: '500', color: '#047857', marginBottom: 4 }}>Message:</Text>
                             <Text style={{ color: '#047857' }}>{trackInfo.message}</Text>
                           </View>
                         )}
                       </View>
+                    </View>
+                  )}
+
+                  {/* Testimonial Form */}
+                  {modalType === 'testimonial' && (
+                    <View>
+                      {/* Recycler Information */}
+                      <View style={{
+                        backgroundColor: '#f9fafb',
+                        borderRadius: 16,
+                        padding: 16,
+                        marginBottom: 20
+                      }}>
+                        <Text style={{
+                          fontSize: 18,
+                          fontWeight: '600',
+                          color: '#1f2937',
+                          marginBottom: 8
+                        }}>
+                          Rate Your Experience
+                        </Text>
+                        
+                        {(() => {
+                          const recyclerData = typeof modalPickup.assignedRecyclerId === 'object' 
+                            ? modalPickup.assignedRecyclerId 
+                            : (typeof modalPickup.assignedRecyclerId === 'string' 
+                                ? recyclerCache[modalPickup.assignedRecyclerId] 
+                                : null);
+                          
+                          if (!recyclerData) {
+                            return (
+                              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
+                                <ActivityIndicator size="small" color="#059669" />
+                                <Text style={{ color: '#6b7280', marginLeft: 8 }}>Loading recycler details...</Text>
+                              </View>
+                            );
+                          }
+
+                          return (
+                            <View style={{ marginBottom: 12 }}>
+                              <Text style={{ fontWeight: '600', color: '#1f2937', marginBottom: 8 }}>
+                                Recycler Information:
+                              </Text>
+                              <View style={{ gap: 4 }}>
+                                <Text style={{ color: '#374151' }}>
+                                  <Text style={{ fontWeight: '500' }}>Name:</Text> {recyclerData.name}
+                                </Text>
+                                {recyclerData.companyName && (
+                                  <Text style={{ color: '#374151' }}>
+                                    <Text style={{ fontWeight: '500' }}>Company:</Text> {recyclerData.companyName}
+                                  </Text>
+                                )}
+                                {recyclerData.phoneNumber && (
+                                  <Text style={{ color: '#374151' }}>
+                                    <Text style={{ fontWeight: '500' }}>Phone:</Text> {recyclerData.phoneNumber}
+                                  </Text>
+                                )}
+                                {recyclerData.email && (
+                                  <Text style={{ color: '#374151' }}>
+                                    <Text style={{ fontWeight: '500' }}>Email:</Text> {recyclerData.email}
+                                  </Text>
+                                )}
+                              </View>
+                            </View>
+                          );
+                        })()}
+                        
+                        <Text style={{
+                          color: '#6b7280',
+                          fontSize: 14
+                        }}>
+                          Device: {modalPickup.deviceType} - {modalPickup.brand} {modalPickup.model}
+                        </Text>
+                      </View>
+
+                      {/* Rating Section */}
+                      <View style={{
+                        backgroundColor: '#ffffff',
+                        borderRadius: 16,
+                        padding: 16,
+                        marginBottom: 16,
+                        borderWidth: 1,
+                        borderColor: '#e5e7eb'
+                      }}>
+                        <Text style={{
+                          fontSize: 16,
+                          fontWeight: '600',
+                          color: '#1f2937',
+                          marginBottom: 12
+                        }}>
+                          Rating *
+                        </Text>
+                        <View style={{
+                          flexDirection: 'row',
+                          justifyContent: 'center',
+                          marginBottom: 8
+                        }}>
+                          {[1, 2, 3, 4, 5].map((star) => (
+                            <TouchableOpacity
+                              key={star}
+                              onPress={() => setTestimonialRating(star)}
+                              style={{ marginHorizontal: 8 }}
+                              activeOpacity={0.7}
+                            >
+                              <Star
+                                size={32}
+                                color={star <= testimonialRating ? "#f59e0b" : "#d1d5db"}
+                                fill={star <= testimonialRating ? "#f59e0b" : "transparent"}
+                              />
+                            </TouchableOpacity>
+                          ))}
+                        </View>
+                        <Text style={{
+                          textAlign: 'center',
+                          color: '#6b7280',
+                          fontSize: 14
+                        }}>
+                          {testimonialRating > 0 ? `${testimonialRating} star${testimonialRating > 1 ? 's' : ''}` : 'Tap to rate'}
+                        </Text>
+                      </View>
+
+                      {/* Feedback Section */}
+                      <View style={{
+                        backgroundColor: '#ffffff',
+                        borderRadius: 16,
+                        padding: 16,
+                        marginBottom: 20,
+                        borderWidth: 1,
+                        borderColor: '#e5e7eb'
+                      }}>
+                        <Text style={{
+                          fontSize: 16,
+                          fontWeight: '600',
+                          color: '#1f2937',
+                          marginBottom: 12
+                        }}>
+                          Feedback *
+                        </Text>
+                        <TextInput
+                          style={{
+                            borderWidth: 1,
+                            borderColor: '#d1d5db',
+                            borderRadius: 12,
+                            padding: 12,
+                            height: 100,
+                            textAlignVertical: 'top',
+                            fontSize: 14,
+                            color: '#1f2937'
+                          }}
+                          multiline
+                          placeholder="Share your experience with this recycler..."
+                          placeholderTextColor="#9ca3af"
+                          value={testimonialFeedback}
+                          onChangeText={setTestimonialFeedback}
+                          maxLength={500}
+                        />
+                        <Text style={{
+                          textAlign: 'right',
+                          color: '#6b7280',
+                          fontSize: 12,
+                          marginTop: 4
+                        }}>
+                          {testimonialFeedback.length}/500
+                        </Text>
+                      </View>
+
+                      {/* Submit Button */}
+                      <TouchableOpacity
+                        style={{
+                          backgroundColor: submittingTestimonial ? '#9ca3af' : '#059669',
+                          borderRadius: 12,
+                          paddingVertical: 16,
+                          paddingHorizontal: 24,
+                          flexDirection: 'row',
+                          justifyContent: 'center',
+                          alignItems: 'center',
+                          marginBottom: 16
+                        }}
+                        onPress={submitTestimonial}
+                        disabled={submittingTestimonial}
+                        activeOpacity={0.8}
+                      >
+                        {submittingTestimonial && (
+                          <ActivityIndicator size="small" color="white" style={{ marginRight: 8 }} />
+                        )}
+                        <Text style={{
+                          color: 'white',
+                          fontSize: 16,
+                          fontWeight: '600'
+                        }}>
+                          {submittingTestimonial ? 'Submitting...' : 'Submit Review'}
+                        </Text>
+                      </TouchableOpacity>
                     </View>
                   )}
                 </View>

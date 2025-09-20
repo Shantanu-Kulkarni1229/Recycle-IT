@@ -1,105 +1,34 @@
 import React, { useEffect, useRef, useState } from "react";
-import { 
-  View, Text, ActivityIndicator, Alert, TouchableOpacity, 
-  Dimensions, Linking, Modal, ScrollView, FlatList 
-} from "react-native";
+import { View, Text, ActivityIndicator, Alert, TouchableOpacity, Dimensions, Linking, Modal, FlatList, TextInput, ScrollView } from "react-native";
+import { Star, Leaf, MapPin, Info, Phone, Navigation, List, X, MessageSquare, Send } from "lucide-react-native";
+import api from "../../api/api";
 import MapView, { Marker, PROVIDER_GOOGLE, Region } from "react-native-maps";
 import * as Location from "expo-location";
 import { BottomSheetModal, BottomSheetModalProvider } from "@gorhom/bottom-sheet";
-import { Leaf, MapPin, Info, Phone, Navigation, List, X } from "lucide-react-native";
+import { useUser } from "@/context/UserContext";
 
 type Recycler = {
-  _id: string;
-  name: string;
-  address: string;
+  id: string;
+  ownerName: string;
+  companyName: string;
+  email: string;
+  phoneNumber: string;
   city: string;
-  latitude: number;
-  longitude: number;
-  phone?: string;
-  email?: string;
+  state: string;
+  address: string;
+  pincode: string;
+  servicesOffered?: string;
+  operatingHours?: string;
+  website?: string;
   description?: string;
+  latitude?: number;
+  longitude?: number;
   distance?: number;
 };
 
 const { width, height } = Dimensions.get("window");
 
-// Hardcoded recyclers data
-const hardcodedRecyclers: Recycler[] = [
-  {
-    _id: "1",
-    name: "E-waste Recyclers India",
-    address: "Ghansoli, Navi Mumbai 400708",
-    city: "Navi Mumbai",
-    latitude: 19.1140,
-    longitude: 73.0114,
-    phone: "9324873485",
-    email: "inquiry@ewasterecyclersindia.in",
-    description: "E-waste recycling services"
-  },
-  {
-    _id: "2",
-    name: "RecycleKaro",
-    address: "Office 1603, 16th floor, Building B, Atrium B, Rupa Solitaire, Millennium Business Park, Mahape, Navi Mumbai 400710",
-    city: "Navi Mumbai",
-    latitude: 19.1175,
-    longitude: 73.0264,
-    phone: "02241231340",
-    email: "info@recyclekaro.com",
-    description: "Comprehensive e-waste management"
-  },
-  {
-    _id: "3",
-    name: "Green India E-Waste & Recycling Opc Pvt. Ltd.",
-    address: "The Corporate Park, 501, Plot No.14, Sector 18, Vashi, Navi Mumbai 400703",
-    city: "Navi Mumbai",
-    latitude: 19.077064,
-    longitude: 72.998992,
-    phone: "8655969731",
-    email: "ewaste@gier.co.in",
-    description: "Professional e-waste recycling"
-  },
-  {
-    _id: "4",
-    name: "GoGreen India E-Waste & Recycling",
-    address: "Unit No. 75, Hasti Industrial Estate, Mahape, Vashi, Navi Mumbai 400701",
-    city: "Navi Mumbai",
-    latitude: 19.1123,
-    longitude: 73.0114,
-    email: "gogreenrecycling15@gmail.com",
-    description: "Eco-friendly e-waste solutions"
-  },
-  {
-    _id: "5",
-    name: "Eco Friend Industries",
-    address: "MIDC, Navi Mumbai",
-    city: "Navi Mumbai",
-    latitude: 19.11,
-    longitude: 73.01,
-    phone: "9930763704",
-    description: "Sustainable e-waste management"
-  },
-  {
-    _id: "6",
-    name: "VVDN Technologies: E-West Recyclers India Centre",
-    address: "Plot No. 92, Gali No. – 01, Sector 19C, Vashi, Navi Mumbai 400705",
-    city: "Navi Mumbai",
-    latitude: 19.07,
-    longitude: 72.999,
-    phone: "9372166155",
-    description: "Technology e-waste specialists"
-  },
-  {
-    _id: "7",
-    name: "EcoTech",
-    address: "Kharghar, Sector 7, Navi Mumbai (UT Classes, Simran Residency, near Bikaner Sweets)",
-    city: "Navi Mumbai",
-    latitude: 19.0500,
-    longitude: 73.0480,
-    phone: "9137029150",
-    email: "ecotech.navimumbai@gmail.com",
-    description: "Innovative e-waste solutions"
-  }
-];
+
 
 // Function to calculate distance between two coordinates
 const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
@@ -120,6 +49,20 @@ const deg2rad = (deg: number): number => {
 };
 
 export default function RecyclersNearby() {
+  const { userId } = useUser();
+  
+  // Rating state
+  const [userRating, setUserRating] = useState<number>(0);
+  const [submittingRating, setSubmittingRating] = useState(false);
+  const [ratingSuccess, setRatingSuccess] = useState(false);
+  
+  // Review state
+  const [showReviewModal, setShowReviewModal] = useState(false);
+  const [reviewRating, setReviewRating] = useState<number>(0);
+  const [reviewFeedback, setReviewFeedback] = useState<string>('');
+  const [submittingReview, setSubmittingReview] = useState(false);
+  const [reviewRecycler, setReviewRecycler] = useState<Recycler | null>(null);
+  
   const [location, setLocation] = useState<Location.LocationObject | null>(null);
   const [loading, setLoading] = useState(true);
   const [recyclers, setRecyclers] = useState<Recycler[]>([]);
@@ -139,19 +82,28 @@ export default function RecyclersNearby() {
       }
       let loc = await Location.getCurrentPositionAsync({});
       setLocation(loc);
-      
-      // Calculate distances and sort by proximity
-      const recyclersWithDistance = hardcodedRecyclers.map(recycler => ({
-        ...recycler,
-        distance: calculateDistance(
-          loc.coords.latitude, 
-          loc.coords.longitude,
-          recycler.latitude,
-          recycler.longitude
-        )
-      })).sort((a, b) => (a.distance || 0) - (b.distance || 0));
-      
-      setRecyclers(recyclersWithDistance);
+      try {
+        const response = await api.get("/users/recyclers");
+        const backendRecyclers: Recycler[] = response.data.data;
+        // Optionally, add latitude/longitude if available from backend, else skip distance
+        const recyclersWithDistance = backendRecyclers.map(recycler => {
+          if (recycler.latitude && recycler.longitude) {
+            return {
+              ...recycler,
+              distance: calculateDistance(
+                loc.coords.latitude,
+                loc.coords.longitude,
+                recycler.latitude,
+                recycler.longitude
+              )
+            };
+          }
+          return recycler;
+        }).sort((a, b) => (a.distance || 0) - (b.distance || 0));
+        setRecyclers(recyclersWithDistance);
+        } catch {
+        Alert.alert("Error", "Failed to fetch recyclers from server.");
+      }
       setLoading(false);
     })();
   }, []);
@@ -159,7 +111,78 @@ export default function RecyclersNearby() {
   // Open bottom sheet with recycler details
   const openRecycler = (recycler: Recycler) => {
     setSelectedRecycler(recycler);
+    setUserRating(0);
+    setRatingSuccess(false);
     bottomSheetRef.current?.present();
+  };
+  // Submit rating (mocked, replace with API call when backend ready)
+  const submitRating = async () => {
+    if (!selectedRecycler || userRating < 1) {
+      Alert.alert("Select a rating", "Please select a rating before submitting.");
+      return;
+    }
+    setSubmittingRating(true);
+    try {
+      // TODO: Replace with real API call when backend is ready
+      // await api.post(`/recyclers/${selectedRecycler.id}/rate`, { rating: userRating });
+      await new Promise(res => setTimeout(res, 800));
+      setRatingSuccess(true);
+    } catch {
+      Alert.alert("Error", "Failed to submit rating. Please try again.");
+    }
+    setSubmittingRating(false);
+  };
+
+  // Open review modal
+  const openReviewModal = (recycler: Recycler) => {
+    if (!userId) {
+      Alert.alert("Login Required", "Please login to submit a review.");
+      return;
+    }
+    setReviewRecycler(recycler);
+    setReviewRating(0);
+    setReviewFeedback('');
+    setShowReviewModal(true);
+  };
+
+  // Submit review to backend
+  const submitReview = async () => {
+    if (!reviewRecycler || !userId) {
+      Alert.alert("Error", "Missing required information.");
+      return;
+    }
+
+    if (reviewRating < 1) {
+      Alert.alert("Rating Required", "Please select a rating before submitting.");
+      return;
+    }
+
+    if (reviewFeedback.trim().length < 10) {
+      Alert.alert("Feedback Required", "Please provide at least 10 characters of feedback.");
+      return;
+    }
+
+    setSubmittingReview(true);
+    try {
+      const response = await api.post('/testimonials', {
+        recyclerId: reviewRecycler.id,
+        userId: userId,
+        feedback: reviewFeedback.trim(),
+        rating: reviewRating
+      });
+
+      if (response.data) {
+        Alert.alert("Success", "Thank you for your review! Your feedback helps others make better choices.");
+        setShowReviewModal(false);
+        setReviewRating(0);
+        setReviewFeedback('');
+        setReviewRecycler(null);
+      }
+    } catch (error: any) {
+      console.error("Error submitting review:", error);
+      Alert.alert("Error", error.response?.data?.message || "Failed to submit review. Please try again.");
+    }
+    setSubmittingReview(false);
   };
 
   // Function to call recycler
@@ -186,20 +209,18 @@ export default function RecyclersNearby() {
   // Render individual recycler in list
   const renderRecyclerItem = ({ item }: { item: Recycler }) => (
     <View className="bg-white p-4 rounded-lg mb-3 shadow-sm border border-emerald-100">
-      <Text className="text-lg font-bold text-emerald-800">{item.name}</Text>
+      <Text className="text-lg font-bold text-emerald-800">{item.companyName}</Text>
       <Text className="text-gray-600 text-sm mt-1">{item.address}</Text>
-      
       {item.distance !== undefined && (
         <Text className="text-emerald-600 text-sm mt-1">
           {item.distance} km away
         </Text>
       )}
-      
-      <View className="flex-row justify-between mt-3">
-        {item.phone ? (
+      <View className="flex-row justify-between mt-3 mb-2">
+        {item.phoneNumber ? (
           <TouchableOpacity 
             className="flex-row items-center bg-emerald-100 px-3 py-2 rounded-lg"
-            onPress={() => callRecycler(item.phone!)}
+            onPress={() => callRecycler(item.phoneNumber!)}
           >
             <Phone size={16} color="#059669" />
             <Text className="ml-2 text-emerald-700 font-medium">Call</Text>
@@ -210,15 +231,22 @@ export default function RecyclersNearby() {
             <Text className="ml-2 text-gray-500">No phone</Text>
           </View>
         )}
-        
         <TouchableOpacity 
           className="flex-row items-center bg-emerald-600 px-3 py-2 rounded-lg"
-          onPress={() => openDirections(item.latitude, item.longitude)}
+          onPress={() => item.latitude && item.longitude && openDirections(item.latitude, item.longitude)}
         >
           <Navigation size={16} color="#fff" />
           <Text className="ml-2 text-white font-medium">Directions</Text>
         </TouchableOpacity>
       </View>
+      {/* Review Button */}
+      <TouchableOpacity 
+        className="flex-row items-center justify-center bg-blue-100 px-3 py-2 rounded-lg mt-2"
+        onPress={() => openReviewModal(item)}
+      >
+        <MessageSquare size={16} color="#1d4ed8" />
+        <Text className="ml-2 text-blue-700 font-medium">Write Review</Text>
+      </TouchableOpacity>
     </View>
   );
 
@@ -273,11 +301,11 @@ export default function RecyclersNearby() {
             )}
             
             {/* Recycler markers */}
-            {recyclers.map((rec) => (
+            {recyclers.filter(r => r.latitude && r.longitude).map((rec) => (
               <Marker
-                key={rec._id}
-                coordinate={{ latitude: rec.latitude, longitude: rec.longitude }}
-                title={rec.name}
+                key={rec.id}
+                coordinate={{ latitude: rec.latitude!, longitude: rec.longitude! }}
+                title={rec.companyName}
                 description={rec.address}
                 onPress={() => openRecycler(rec)}
               >
@@ -307,7 +335,7 @@ export default function RecyclersNearby() {
             <FlatList
               data={recyclers}
               renderItem={renderRecyclerItem}
-              keyExtractor={item => item._id}
+                keyExtractor={item => item.id}
               contentContainerStyle={{ padding: 16 }}
               ListEmptyComponent={
                 <View className="flex-1 justify-center items-center py-10">
@@ -327,64 +355,91 @@ export default function RecyclersNearby() {
         >
           {selectedRecycler ? (
             <View className="p-4">
-              <Text className="text-xl font-bold text-emerald-800 mb-1">{selectedRecycler.name}</Text>
+              <Text className="text-xl font-bold text-emerald-800 mb-1">{selectedRecycler.companyName}</Text>
               <View className="flex-row items-center mb-2">
                 <MapPin size={16} color="#059669" />
                 <Text className="ml-2 text-gray-700">{selectedRecycler.address}</Text>
               </View>
-              
               {selectedRecycler.distance !== undefined && (
                 <Text className="text-emerald-600 mb-2">
                   {selectedRecycler.distance} km away from your location
                 </Text>
               )}
-              
               <View className="flex-row items-center mb-2">
                 <Info size={16} color="#059669" />
                 <Text className="ml-2 text-gray-700">{selectedRecycler.description || "E-waste drop-off and recycling center"}</Text>
               </View>
-              
-              {selectedRecycler.phone && (
+              {selectedRecycler.phoneNumber && (
                 <TouchableOpacity 
                   className="flex-row items-center mb-2"
-                  onPress={() => callRecycler(selectedRecycler.phone!)}
+                  onPress={() => callRecycler(selectedRecycler.phoneNumber!)}
                 >
                   <Phone size={16} color="#059669" />
-                  <Text className="ml-2 text-gray-700">{selectedRecycler.phone}</Text>
+                  <Text className="ml-2 text-gray-700">{selectedRecycler.phoneNumber}</Text>
                 </TouchableOpacity>
               )}
-              
               {selectedRecycler.email && (
                 <View className="flex-row items-center mb-4">
                   <Info size={16} color="#059669" />
                   <Text className="ml-2 text-gray-700">{selectedRecycler.email}</Text>
                 </View>
               )}
-              
+
+              {/* Rating Form */}
+              <View className="mt-4 mb-2">
+                <Text className="text-base font-semibold text-emerald-800 mb-1">Rate this Recycler:</Text>
+                <View className="flex-row items-center mb-2">
+                  {[1,2,3,4,5].map(star => (
+                    <TouchableOpacity
+                      key={star}
+                      onPress={() => setUserRating(star)}
+                      disabled={submittingRating || ratingSuccess}
+                    >
+                      <Star size={28} color={userRating >= star ? '#fbbf24' : '#d1d5db'} fill={userRating >= star ? '#fbbf24' : 'none'} />
+                    </TouchableOpacity>
+                  ))}
+                </View>
+                <TouchableOpacity
+                  className={`px-4 py-2 rounded-lg ${userRating > 0 && !ratingSuccess ? 'bg-emerald-600' : 'bg-gray-300'} items-center`}
+                  onPress={submitRating}
+                  disabled={userRating < 1 || submittingRating || ratingSuccess}
+                >
+                  <Text className="text-white font-semibold">
+                    {submittingRating ? 'Submitting...' : ratingSuccess ? 'Thank you for rating!' : 'Submit Rating'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+
               <View className="flex-row justify-between mt-4">
-                {selectedRecycler.phone && (
+                {selectedRecycler.phoneNumber && (
                   <TouchableOpacity
                     className="flex-row items-center px-4 py-2 bg-emerald-600 rounded-lg"
-                    onPress={() => callRecycler(selectedRecycler.phone!)}
+                    onPress={() => callRecycler(selectedRecycler.phoneNumber!)}
                   >
                     <Phone size={18} color="#fff" />
                     <Text className="ml-2 text-white font-semibold">Call</Text>
                   </TouchableOpacity>
                 )}
-                
                 <TouchableOpacity
                   className="flex-row items-center px-4 py-2 bg-emerald-800 rounded-lg"
-                  onPress={() => openDirections(selectedRecycler.latitude, selectedRecycler.longitude)}
+                  onPress={() => selectedRecycler.latitude && selectedRecycler.longitude && openDirections(selectedRecycler.latitude, selectedRecycler.longitude)}
                 >
                   <Navigation size={18} color="#fff" />
                   <Text className="ml-2 text-white font-semibold">Directions</Text>
                 </TouchableOpacity>
               </View>
               
+              {/* Write Review Button */}
+              <TouchableOpacity
+                className="flex-row items-center justify-center px-4 py-3 bg-blue-600 rounded-lg mt-3"
+                onPress={() => openReviewModal(selectedRecycler)}
+              >
+                <MessageSquare size={18} color="#fff" />
+                <Text className="ml-2 text-white font-semibold">Write Detailed Review</Text>
+              </TouchableOpacity>
               <Text className="text-green-700 mt-4">
                 ♻️ Thank you for recycling responsibly!
               </Text>
-              
               <TouchableOpacity
                 className="mt-6 px-6 py-3 bg-emerald-600 rounded-xl items-center"
                 onPress={() => bottomSheetRef.current?.dismiss()}
@@ -398,6 +453,151 @@ export default function RecyclersNearby() {
             </View>
           )}
         </BottomSheetModal>
+
+        {/* Review Modal */}
+        <Modal
+          visible={showReviewModal}
+          animationType="slide"
+          transparent={true}
+          onRequestClose={() => setShowReviewModal(false)}
+        >
+          <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center' }}>
+            <View style={{
+              backgroundColor: 'white',
+              margin: 20,
+              borderRadius: 20,
+              padding: 20,
+              maxHeight: '80%',
+              elevation: 5,
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.25,
+              shadowRadius: 4,
+            }}>
+              <ScrollView showsVerticalScrollIndicator={false}>
+                {/* Header */}
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+                  <Text style={{ fontSize: 20, fontWeight: 'bold', color: '#047857', flex: 1 }}>
+                    Write Review
+                  </Text>
+                  <TouchableOpacity
+                    onPress={() => setShowReviewModal(false)}
+                    style={{ backgroundColor: '#f3f4f6', borderRadius: 20, padding: 8 }}
+                  >
+                    <X size={20} color="#6B7280" />
+                  </TouchableOpacity>
+                </View>
+
+                {/* Recycler Info */}
+                {reviewRecycler && (
+                  <View style={{ backgroundColor: '#f0fdf4', borderRadius: 12, padding: 16, marginBottom: 20 }}>
+                    <Text style={{ fontSize: 18, fontWeight: '600', color: '#047857', marginBottom: 4 }}>
+                      {reviewRecycler.companyName}
+                    </Text>
+                    <Text style={{ color: '#6b7280', fontSize: 14 }}>
+                      {reviewRecycler.address}
+                    </Text>
+                    {reviewRecycler.distance !== undefined && (
+                      <Text style={{ color: '#059669', fontSize: 12, marginTop: 4 }}>
+                        {reviewRecycler.distance} km away
+                      </Text>
+                    )}
+                  </View>
+                )}
+
+                {/* Rating Section */}
+                <View style={{ marginBottom: 20 }}>
+                  <Text style={{ fontSize: 16, fontWeight: '600', color: '#1f2937', marginBottom: 12 }}>
+                    Rating *
+                  </Text>
+                  <View style={{ flexDirection: 'row', justifyContent: 'center', marginBottom: 8 }}>
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <TouchableOpacity
+                        key={star}
+                        onPress={() => setReviewRating(star)}
+                        style={{ marginHorizontal: 8 }}
+                        disabled={submittingReview}
+                      >
+                        <Star
+                          size={32}
+                          color={star <= reviewRating ? "#f59e0b" : "#d1d5db"}
+                          fill={star <= reviewRating ? "#f59e0b" : "transparent"}
+                        />
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                  <Text style={{ textAlign: 'center', color: '#6b7280', fontSize: 14 }}>
+                    {reviewRating > 0 ? `${reviewRating} star${reviewRating > 1 ? 's' : ''}` : 'Tap to rate'}
+                  </Text>
+                </View>
+
+                {/* Feedback Section */}
+                <View style={{ marginBottom: 20 }}>
+                  <Text style={{ fontSize: 16, fontWeight: '600', color: '#1f2937', marginBottom: 12 }}>
+                    Your Feedback *
+                  </Text>
+                  <TextInput
+                    style={{
+                      backgroundColor: '#f9fafb',
+                      borderWidth: 1,
+                      borderColor: '#e5e7eb',
+                      borderRadius: 12,
+                      padding: 12,
+                      minHeight: 100,
+                      textAlignVertical: 'top',
+                      fontSize: 15,
+                      color: '#1f2937'
+                    }}
+                    placeholder="Share your experience with this recycler. What did you like? Any suggestions for improvement?"
+                    placeholderTextColor="#9ca3af"
+                    value={reviewFeedback}
+                    onChangeText={setReviewFeedback}
+                    multiline={true}
+                    maxLength={500}
+                    editable={!submittingReview}
+                  />
+                  <Text style={{ textAlign: 'right', color: '#9ca3af', fontSize: 12, marginTop: 4 }}>
+                    {reviewFeedback.length}/500 characters
+                  </Text>
+                </View>
+
+                {/* Submit Button */}
+                <TouchableOpacity
+                  style={{
+                    backgroundColor: reviewRating > 0 && reviewFeedback.trim().length >= 10 && !submittingReview ? '#059669' : '#d1d5db',
+                    borderRadius: 12,
+                    padding: 16,
+                    flexDirection: 'row',
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    elevation: submittingReview ? 0 : 2,
+                    shadowColor: '#000',
+                    shadowOffset: { width: 0, height: 2 },
+                    shadowOpacity: 0.1,
+                    shadowRadius: 4,
+                  }}
+                  onPress={submitReview}
+                  disabled={reviewRating < 1 || reviewFeedback.trim().length < 10 || submittingReview}
+                  activeOpacity={0.8}
+                >
+                  {submittingReview ? (
+                    <ActivityIndicator size="small" color="#ffffff" />
+                  ) : (
+                    <Send size={18} color="#ffffff" />
+                  )}
+                  <Text style={{
+                    color: '#ffffff',
+                    fontWeight: '600',
+                    fontSize: 16,
+                    marginLeft: submittingReview ? 8 : 10
+                  }}>
+                    {submittingReview ? 'Submitting...' : 'Submit Review'}
+                  </Text>
+                </TouchableOpacity>
+              </ScrollView>
+            </View>
+          </View>
+        </Modal>
       </View>
     </BottomSheetModalProvider>
   );

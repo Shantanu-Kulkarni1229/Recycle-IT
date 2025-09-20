@@ -1,6 +1,7 @@
 const mongoose = require("mongoose");
 const SchedulePickup = require("../models/SchedulePickup");
 const { cloudinary } = require("../config/cloudinary");
+const { sendEmail } = require("../utils/emailService");
 
 // Validation function for ObjectId
 const isValidObjectId = (id) => {
@@ -505,27 +506,43 @@ exports.updatePickupStatus = async (req, res) => {
         message: "Invalid status"
       });
     }
+
+    // Get current pickup with user details before updating
+    const currentPickup = await SchedulePickup.findById(id).populate('userId', 'firstName lastName email phoneNumber');
     
-    const pickup = await SchedulePickup.findByIdAndUpdate(
-      id, 
-      { pickupStatus: status }, 
-      { 
-        new: true,
-        runValidators: true 
-      }
-    );
-    
-    if (!pickup) {
+    if (!currentPickup) {
       return res.status(404).json({
         success: false,
         message: "Pickup not found"
       });
     }
-    
+
+    // Update the pickup status
+    const pickup = await SchedulePickup.findByIdAndUpdate(
+      id, 
+      { 
+        pickupStatus: status,
+        updatedAt: new Date()
+      }, 
+      { 
+        new: true,
+        runValidators: true 
+      }
+    ).populate('userId', 'firstName lastName email phoneNumber');
+
+    // Send notification based on status change
+    try {
+      await sendPickupStatusNotification(pickup, status);
+    } catch (notificationError) {
+      console.error("Error sending notification:", notificationError);
+      // Don't fail the request if notification fails
+    }
+
     res.json({
       success: true,
       message: "Pickup status updated successfully",
-      data: pickup
+      data: pickup,
+      notification: "Status update notification sent to user"
     });
   } catch (error) {
     console.error("Error updating status:", error);
@@ -536,6 +553,189 @@ exports.updatePickupStatus = async (req, res) => {
     });
   }
 };
+
+// Helper function to send pickup status notifications
+async function sendPickupStatusNotification(pickup, newStatus) {
+  if (!pickup.userId || !pickup.userId.email) {
+    console.log("No user email found for notification");
+    return;
+  }
+
+  let subject = '';
+  let emailBody = '';
+  
+  const userName = `${pickup.userId.firstName} ${pickup.userId.lastName}`;
+  const deviceInfo = `${pickup.brand} ${pickup.model} (${pickup.deviceType})`;
+  
+  switch (newStatus) {
+    case 'Scheduled':
+      subject = '🎉 Pickup Approved - Your E-Waste Collection is Scheduled!';
+      emailBody = `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <div style="background: linear-gradient(135deg, #10b981, #059669); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
+            <h1 style="margin: 0; font-size: 28px;">🎉 Great News!</h1>
+            <p style="margin: 10px 0 0 0; font-size: 18px;">Your pickup has been approved!</p>
+          </div>
+          
+          <div style="background: #f8fafc; padding: 30px; border-radius: 0 0 10px 10px;">
+            <h2 style="color: #1f2937; margin-top: 0;">Hello ${userName},</h2>
+            
+            <p style="color: #4b5563; line-height: 1.6;">
+              Excellent news! Your e-waste pickup request has been <strong style="color: #10b981;">approved and scheduled</strong>.
+            </p>
+            
+            <div style="background: white; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #10b981;">
+              <h3 style="color: #1f2937; margin-top: 0;">Pickup Details:</h3>
+              <p style="margin: 5px 0; color: #4b5563;"><strong>Device:</strong> ${deviceInfo}</p>
+              <p style="margin: 5px 0; color: #4b5563;"><strong>Address:</strong> ${pickup.pickupAddress}</p>
+              <p style="margin: 5px 0; color: #4b5563;"><strong>Preferred Date:</strong> ${new Date(pickup.preferredPickupDate).toLocaleDateString()}</p>
+              <p style="margin: 5px 0; color: #4b5563;"><strong>Status:</strong> <span style="color: #10b981; font-weight: bold;">Scheduled</span></p>
+            </div>
+            
+            <p style="color: #4b5563; line-height: 1.6;">
+              Our team will contact you soon to confirm the exact pickup time. Please keep your device ready and ensure someone is available at the pickup location.
+            </p>
+            
+            <div style="text-align: center; margin: 30px 0;">
+              <p style="color: #6b7280; font-size: 14px;">Thank you for choosing eco-friendly e-waste recycling! 🌱</p>
+            </div>
+          </div>
+        </div>
+      `;
+      break;
+      
+    case 'In Transit':
+      subject = '🚚 Pickup Team En Route - We\'re Coming to Collect Your Device!';
+      emailBody = `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <div style="background: linear-gradient(135deg, #3b82f6, #1d4ed8); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
+            <h1 style="margin: 0; font-size: 28px;">🚚 On The Way!</h1>
+            <p style="margin: 10px 0 0 0; font-size: 18px;">Our team is heading to your location</p>
+          </div>
+          
+          <div style="background: #f8fafc; padding: 30px; border-radius: 0 0 10px 10px;">
+            <h2 style="color: #1f2937; margin-top: 0;">Hello ${userName},</h2>
+            
+            <p style="color: #4b5563; line-height: 1.6;">
+              Our pickup team is currently <strong style="color: #3b82f6;">en route</strong> to collect your ${deviceInfo}.
+            </p>
+            
+            <div style="background: white; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #3b82f6;">
+              <h3 style="color: #1f2937; margin-top: 0;">Please Be Ready:</h3>
+              <ul style="color: #4b5563; line-height: 1.6;">
+                <li>Keep your ${pickup.deviceType} accessible</li>
+                <li>Ensure someone is available at ${pickup.pickupAddress}</li>
+                <li>Have any accessories or documentation ready if applicable</li>
+              </ul>
+            </div>
+            
+            <p style="color: #4b5563; line-height: 1.6;">
+              Our team will contact you upon arrival. Thank you for your patience!
+            </p>
+          </div>
+        </div>
+      `;
+      break;
+      
+    case 'Collected':
+      subject = '📦 Device Successfully Collected - Thank You for Recycling!';
+      emailBody = `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <div style="background: linear-gradient(135deg, #059669, #047857); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
+            <h1 style="margin: 0; font-size: 28px;">📦 Successfully Collected!</h1>
+            <p style="margin: 10px 0 0 0; font-size: 18px;">Your device is now in safe hands</p>
+          </div>
+          
+          <div style="background: #f8fafc; padding: 30px; border-radius: 0 0 10px 10px;">
+            <h2 style="color: #1f2937; margin-top: 0;">Hello ${userName},</h2>
+            
+            <p style="color: #4b5563; line-height: 1.6;">
+              Great news! Your ${deviceInfo} has been <strong style="color: #059669;">successfully collected</strong> by our team.
+            </p>
+            
+            <div style="background: white; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #059669;">
+              <h3 style="color: #1f2937; margin-top: 0;">What's Next:</h3>
+              <ul style="color: #4b5563; line-height: 1.6;">
+                <li>Your device will be transported to our recycling facility</li>
+                <li>We'll perform quality checks and data destruction</li>
+                <li>You'll receive updates on the recycling process</li>
+                <li>Environmental impact report will be shared</li>
+              </ul>
+            </div>
+            
+            <p style="color: #4b5563; line-height: 1.6;">
+              Thank you for choosing responsible e-waste recycling. You're making a positive impact on the environment! 🌍
+            </p>
+          </div>
+        </div>
+      `;
+      break;
+      
+    case 'Cancelled':
+      subject = '❌ Pickup Cancelled - We\'re Here to Help';
+      emailBody = `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <div style="background: linear-gradient(135deg, #dc2626, #b91c1c); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
+            <h1 style="margin: 0; font-size: 28px;">❌ Pickup Cancelled</h1>
+            <p style="margin: 10px 0 0 0; font-size: 18px;">We're sorry for the inconvenience</p>
+          </div>
+          
+          <div style="background: #f8fafc; padding: 30px; border-radius: 0 0 10px 10px;">
+            <h2 style="color: #1f2937; margin-top: 0;">Hello ${userName},</h2>
+            
+            <p style="color: #4b5563; line-height: 1.6;">
+              We regret to inform you that your pickup for ${deviceInfo} has been <strong style="color: #dc2626;">cancelled</strong>.
+            </p>
+            
+            <div style="background: white; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #dc2626;">
+              <h3 style="color: #1f2937; margin-top: 0;">Need Help?</h3>
+              <p style="color: #4b5563; line-height: 1.6;">
+                Please contact our support team for assistance or to reschedule your pickup. We're here to help you with responsible e-waste disposal.
+              </p>
+            </div>
+            
+            <p style="color: #4b5563; line-height: 1.6;">
+              We apologize for any inconvenience caused and look forward to serving you in the future.
+            </p>
+          </div>
+        </div>
+      `;
+      break;
+      
+    default:
+      subject = `📱 Pickup Status Update - ${newStatus}`;
+      emailBody = `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <div style="background: linear-gradient(135deg, #6b7280, #4b5563); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
+            <h1 style="margin: 0; font-size: 28px;">📱 Status Update</h1>
+            <p style="margin: 10px 0 0 0; font-size: 18px;">Your pickup status has been updated</p>
+          </div>
+          
+          <div style="background: #f8fafc; padding: 30px; border-radius: 0 0 10px 10px;">
+            <h2 style="color: #1f2937; margin-top: 0;">Hello ${userName},</h2>
+            
+            <p style="color: #4b5563; line-height: 1.6;">
+              The status of your pickup for ${deviceInfo} has been updated to: <strong style="color: #6b7280;">${newStatus}</strong>
+            </p>
+            
+            <div style="background: white; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #6b7280;">
+              <p style="margin: 5px 0; color: #4b5563;"><strong>Device:</strong> ${deviceInfo}</p>
+              <p style="margin: 5px 0; color: #4b5563;"><strong>Current Status:</strong> ${newStatus}</p>
+              <p style="margin: 5px 0; color: #4b5563;"><strong>Updated:</strong> ${new Date().toLocaleString()}</p>
+            </div>
+          </div>
+        </div>
+      `;
+  }
+  
+  try {
+    await sendEmail(pickup.userId.email, subject, emailBody);
+    console.log(`Status notification sent to ${pickup.userId.email} for pickup ${pickup._id}`);
+  } catch (emailError) {
+    console.error("Error sending email notification:", emailError);
+    throw emailError;
+  }
+}
 
 // 9. Track Pickup (SAME - no changes needed)
 exports.trackPickup = async (req, res) => {
@@ -697,6 +897,182 @@ exports.removePickupFile = async (req, res) => {
     res.status(500).json({
       success: false,
       message: "Internal server error while removing file",
+      error: process.env.NODE_ENV === "development" ? error.message : "Something went wrong"
+    });
+  }
+};
+
+// Get All Pickups (for admin/management purposes)
+exports.getAllPickups = async (req, res) => {
+  try {
+    const { 
+      status, 
+      page = 1, 
+      limit = 10, 
+      sortBy = 'createdAt', 
+      sortOrder = 'desc',
+      city,
+      state,
+      fromDate,
+      toDate
+    } = req.query;
+
+    // Build filter object
+    const filter = {};
+    
+    if (status && status !== 'all') {
+      filter.pickupStatus = status;
+    }
+    
+    if (city) {
+      filter.city = { $regex: city, $options: 'i' };
+    }
+    
+    if (state) {
+      filter.state = { $regex: state, $options: 'i' };
+    }
+    
+    if (fromDate || toDate) {
+      filter.createdAt = {};
+      if (fromDate) {
+        filter.createdAt.$gte = new Date(fromDate);
+      }
+      if (toDate) {
+        filter.createdAt.$lte = new Date(toDate);
+      }
+    }
+
+    // Calculate pagination
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+    const sortDirection = sortOrder === 'desc' ? -1 : 1;
+
+    // Get total count for pagination
+    const totalPickups = await SchedulePickup.countDocuments(filter);
+
+    // Fetch pickups with pagination and population
+    const pickups = await SchedulePickup.find(filter)
+      .populate('userId', 'firstName lastName email phoneNumber')
+      .populate('assignedRecyclerId', 'ownerName companyName email phoneNumber')
+      .populate('assignedDeliveryPartnerId', 'name email phoneNumber vehicleType vehicleNumber isAvailable')
+      .sort({ [sortBy]: sortDirection })
+      .skip(skip)
+      .limit(parseInt(limit))
+      .lean();
+
+    // Calculate pagination info
+    const totalPages = Math.ceil(totalPickups / parseInt(limit));
+    const hasNextPage = parseInt(page) < totalPages;
+    const hasPrevPage = parseInt(page) > 1;
+
+    res.json({
+      success: true,
+      message: "Pickups retrieved successfully",
+      data: {
+        pickups,
+        pagination: {
+          currentPage: parseInt(page),
+          totalPages,
+          totalPickups,
+          hasNextPage,
+          hasPrevPage,
+          limit: parseInt(limit)
+        }
+      }
+    });
+  } catch (error) {
+    console.error("Error fetching all pickups:", error);
+    res.status(500).json({
+      success: false,
+      message: "Internal server error while fetching pickups",
+      error: process.env.NODE_ENV === "development" ? error.message : "Something went wrong"
+    });
+  }
+};
+
+// Assign Delivery Partner to Pickup
+exports.assignDeliveryPartner = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { deliveryPartnerId } = req.body;
+    
+    if (!isValidObjectId(id)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid pickup ID format"
+      });
+    }
+    
+    if (!deliveryPartnerId || !isValidObjectId(deliveryPartnerId)) {
+      return res.status(400).json({
+        success: false,
+        message: "Valid delivery partner ID is required"
+      });
+    }
+
+    // Check if pickup exists
+    const pickup = await SchedulePickup.findById(id);
+    if (!pickup) {
+      return res.status(404).json({
+        success: false,
+        message: "Pickup not found"
+      });
+    }
+
+    // Verify delivery partner exists and is available
+    const DeliveryPartner = require("../models/DeliveryPartner");
+    const deliveryPartner = await DeliveryPartner.findById(deliveryPartnerId);
+    
+    if (!deliveryPartner) {
+      return res.status(404).json({
+        success: false,
+        message: "Delivery partner not found"
+      });
+    }
+
+    if (!deliveryPartner.isAvailable || deliveryPartner.status !== 'Active') {
+      return res.status(400).json({
+        success: false,
+        message: "Delivery partner is not available for assignment"
+      });
+    }
+
+    // Check if delivery partner serves the pickup area
+    const isAreaServed = deliveryPartner.serviceAreas.some(area => 
+      area.city.toLowerCase() === pickup.city.toLowerCase() && 
+      area.pincode === pickup.pincode
+    );
+
+    if (!isAreaServed) {
+      return res.status(400).json({
+        success: false,
+        message: "Delivery partner does not serve this area"
+      });
+    }
+
+    // Update pickup with delivery partner assignment
+    const updatedPickup = await SchedulePickup.findByIdAndUpdate(
+      id,
+      { 
+        assignedDeliveryPartnerId: deliveryPartnerId,
+        updatedAt: new Date()
+      },
+      { 
+        new: true,
+        runValidators: true 
+      }
+    ).populate('assignedDeliveryPartnerId', 'name email phoneNumber vehicleType vehicleNumber');
+
+    res.json({
+      success: true,
+      message: "Delivery partner assigned successfully",
+      data: updatedPickup
+    });
+
+  } catch (error) {
+    console.error("Error assigning delivery partner:", error);
+    res.status(500).json({
+      success: false,
+      message: "Internal server error while assigning delivery partner",
       error: process.env.NODE_ENV === "development" ? error.message : "Something went wrong"
     });
   }

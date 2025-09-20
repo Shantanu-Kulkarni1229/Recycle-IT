@@ -9,6 +9,8 @@ import {
   Alert,
   ScrollView,
   Image,
+  Animated,
+  Easing,
 } from "react-native";
 import {
   User,
@@ -21,6 +23,10 @@ import {
   Loader2,
   Leaf,
   ShieldCheck,
+  Gift,
+  Coins,
+  Sparkles,
+  Check,
 } from "lucide-react-native";
 import api from "../../api/api";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -34,6 +40,16 @@ type UserProfile = {
   isVerified: boolean;
 };
 
+type Reward = {
+  id: string;
+  title: string;
+  description: string;
+  pointsRequired: number;
+  weightRequired: number;
+  claimed: boolean;
+  claimable: boolean;
+};
+
 export default function Profile() {
   const { userId, logout } = useUser();
   const router = useRouter();
@@ -43,6 +59,11 @@ export default function Profile() {
   const [form, setForm] = useState({ name: "", phoneNumber: "" });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [rewards, setRewards] = useState<Reward[]>([]);
+  const [claimingReward, setClaimingReward] = useState<string | null>(null);
+  const [showSuccessAnimation, setShowSuccessAnimation] = useState(false);
+  const fadeAnim = new Animated.Value(0);
+  const scaleAnim = new Animated.Value(0.8);
 
   // Fetch user profile
   const fetchProfile = async () => {
@@ -65,8 +86,57 @@ export default function Profile() {
     setLoading(false);
   };
 
+  // Fetch rewards
+  const fetchRewards = async () => {
+    try {
+      // Mock data - replace with actual API call
+      const mockRewards: Reward[] = [
+        {
+          id: "1",
+          title: "Eco Warrior",
+          description: "Recycle 5kg of e-waste",
+          pointsRequired: 500,
+          weightRequired: 5,
+          claimed: false,
+          claimable: true,
+        },
+        {
+          id: "2",
+          title: "Planet Saver",
+          description: "Recycle 10kg of e-waste",
+          pointsRequired: 1000,
+          weightRequired: 10,
+          claimed: false,
+          claimable: true,
+        },
+        {
+          id: "3",
+          title: "Green Champion",
+          description: "Recycle 20kg of e-waste",
+          pointsRequired: 2000,
+          weightRequired: 20,
+          claimed: true,
+          claimable: false,
+        },
+      ];
+      setRewards(mockRewards);
+      
+      // Actual API implementation would look like:
+      /*
+      const token = await AsyncStorage.getItem("userToken");
+      const res = await api.get("users/rewards", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setRewards(res.data.rewards);
+      */
+    } catch (err: any) {
+      console.log("Rewards fetch error:", err.response?.data || err.message);
+    }
+  };
+
   useEffect(() => {
     fetchProfile();
+    fetchRewards();
   }, [userId]);
 
   // Save profile changes
@@ -102,8 +172,72 @@ export default function Profile() {
     router.replace("/auth/login");
   };
 
+  // Claim reward
+  const handleClaimReward = async (rewardId: string) => {
+    setClaimingReward(rewardId);
+    try {
+      // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      
+      // Update the reward status
+      setRewards(prev => prev.map(reward => 
+        reward.id === rewardId ? { ...reward, claimed: true, claimable: false } : reward
+      ));
+      
+      // Show success animation
+      setShowSuccessAnimation(true);
+      Animated.sequence([
+        Animated.timing(fadeAnim, {
+          toValue: 1,
+          duration: 300,
+          easing: Easing.out(Easing.ease),
+          useNativeDriver: true,
+        }),
+        Animated.timing(scaleAnim, {
+          toValue: 1,
+          duration: 300,
+          easing: Easing.out(Easing.ease),
+          useNativeDriver: true,
+        }),
+        Animated.delay(2000),
+        Animated.timing(fadeAnim, {
+          toValue: 0,
+          duration: 500,
+          easing: Easing.in(Easing.ease),
+          useNativeDriver: true,
+        }),
+      ]).start(() => {
+        setShowSuccessAnimation(false);
+        scaleAnim.setValue(0.8);
+      });
+      
+    } catch (err: any) {
+      Alert.alert("Error", "Failed to claim reward. Please try again.");
+    }
+    setClaimingReward(null);
+  };
+
   return (
     <ScrollView className="flex-1 bg-green-50" contentContainerStyle={{ padding: 20 }}>
+      {/* Success Animation Overlay */}
+      {showSuccessAnimation && (
+        <Animated.View 
+          style={{ opacity: fadeAnim, transform: [{ scale: scaleAnim }] }}
+          className="absolute inset-0 bg-black/70 z-50 items-center justify-center"
+        >
+          <View className="bg-white rounded-2xl p-6 items-center mx-5">
+            <View className="bg-green-100 p-4 rounded-full mb-4">
+              <Check size={40} color="#059669" />
+            </View>
+            <Text className="text-2xl font-bold text-green-800 mb-2">Reward Claimed!</Text>
+            <Text className="text-green-700 text-center mb-4">
+              Your reward will be transferred to your bank account in 2-3 working days
+            </Text>
+            <Sparkles size={24} color="#F59E0B" />
+          </View>
+        </Animated.View>
+      )}
+
       {/* Header with nature-inspired background */}
       <View className="bg-green-600 rounded-b-3xl p-6 mb-6 shadow-lg">
         <View className="items-center">
@@ -224,6 +358,75 @@ export default function Profile() {
             >
               <Text className="text-white">Try Again</Text>
             </TouchableOpacity>
+          </View>
+        )}
+      </View>
+
+      {/* Rewards Section */}
+      <View className="bg-white rounded-2xl shadow-lg p-5 mb-6 border border-green-100">
+        <View className="flex-row items-center mb-4">
+          <Gift size={20} color="#059669" />
+          <Text className="text-green-800 font-bold text-lg ml-2">Your Rewards</Text>
+        </View>
+        
+        <Text className="text-green-700 mb-4">
+          Earn rewards by recycling e-waste and contributing to a greener planet!
+        </Text>
+        
+        {rewards.length > 0 ? (
+          rewards.map((reward) => (
+            <View 
+              key={reward.id} 
+              className={`p-4 rounded-xl mb-3 border ${
+                reward.claimed 
+                  ? "bg-green-50 border-green-200" 
+                  : "bg-amber-50 border-amber-200"
+              }`}
+            >
+              <View className="flex-row justify-between items-start mb-2">
+                <Text className="font-bold text-green-900 text-lg">{reward.title}</Text>
+                <View className="flex-row items-center bg-green-100 px-2 py-1 rounded-full">
+                  <Coins size={14} color="#059669" />
+                  <Text className="text-green-700 text-xs ml-1">{reward.pointsRequired} pts</Text>
+                </View>
+              </View>
+              
+              <Text className="text-green-800 mb-3">{reward.description}</Text>
+              
+              <View className="flex-row justify-between items-center">
+                <Text className="text-green-700 text-sm">
+                  Recycle {reward.weightRequired}kg to earn
+                </Text>
+                
+                {reward.claimed ? (
+                  <View className="flex-row items-center bg-green-100 px-3 py-1 rounded-full">
+                    <Check size={14} color="#059669" />
+                    <Text className="text-green-700 text-xs ml-1">Claimed</Text>
+                  </View>
+                ) : (
+                  <TouchableOpacity
+                    className={`px-4 py-2 rounded-full flex-row items-center ${
+                      reward.claimable ? "bg-amber-500" : "bg-gray-300"
+                    }`}
+                    onPress={() => handleClaimReward(reward.id)}
+                    disabled={!reward.claimable || claimingReward === reward.id}
+                  >
+                    {claimingReward === reward.id ? (
+                      <ActivityIndicator size="small" color="#fff" className="mr-1" />
+                    ) : (
+                      <Gift size={14} color="#fff" className="mr-1" />
+                    )}
+                    <Text className="text-white text-xs font-semibold">
+                      {claimingReward === reward.id ? "Claiming..." : "Claim Reward"}
+                    </Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+            </View>
+          ))
+        ) : (
+          <View className="items-center py-4">
+            <Text className="text-green-700">No rewards available yet. Start recycling to earn rewards!</Text>
           </View>
         )}
       </View>
