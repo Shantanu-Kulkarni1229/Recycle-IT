@@ -127,7 +127,7 @@ const VerifyOtp: React.FC = () => {
             </View>
             <Text className="text-2xl font-bold text-gray-900 mb-2">Verify Your Email</Text>
             <Text className="text-gray-600 text-center leading-6">
-              We've sent a 6-digit verification code to your email address. Please enter it below to continue.
+              We&apos;ve sent a 6-digit verification code to your email address. Please enter it below to continue.
             </Text>
           </View>
         </View>
@@ -204,7 +204,7 @@ const VerifyOtp: React.FC = () => {
 
           {/* Resend OTP */}
           <View className="flex-row items-center justify-center mb-8">
-            <Text className="text-gray-600">Didn't receive the code? </Text>
+            <Text className="text-gray-600">Didn&apos;t receive the code? </Text>
             <TouchableOpacity onPress={handleResendOtp}>
               <Text className="text-green-600 font-medium">Resend</Text>
             </TouchableOpacity>

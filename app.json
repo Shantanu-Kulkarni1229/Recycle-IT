@@ -1,0 +1,12 @@
+{
+  "expo": {
+    "extra": {
+      "eas": {
+        "projectId": "44893a69-317e-4efa-868c-b614e3298015"
+      }
+    },
+    "android": {
+      "package": "com.shantanu_kulkarni.recycleit"
+    }
+  }
+}

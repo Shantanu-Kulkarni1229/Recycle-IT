@@ -28,7 +28,6 @@ const ResetPassword: React.FC = () => {
     otp: "",
     newPassword: ""
   });
-  const [currentStep, setCurrentStep] = useState(1); // 1: Email, 2: OTP & Password
 
   const validateEmail = (email: string) => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -371,7 +370,7 @@ const ResetPassword: React.FC = () => {
               <Text className="text-blue-800 font-medium ml-2">Security Notice</Text>
             </View>
             <Text className="text-blue-700 text-sm leading-5">
-              After resetting your password, you'll be automatically logged out of all devices for security purposes.
+              After resetting your password, you&apos;ll be automatically logged out of all devices for security purposes.
             </Text>
           </View>
 

@@ -8,7 +8,6 @@ import {
   ActivityIndicator,
   Alert,
   ScrollView,
-  Image,
   Animated,
   Easing,
 } from "react-native";
@@ -16,7 +15,6 @@ import {
   User,
   Mail,
   Phone,
-  CheckCircle,
   Edit,
   Save,
   LogOut,
@@ -211,6 +209,7 @@ export default function Profile() {
         scaleAnim.setValue(0.8);
       });
       
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (err: any) {
       Alert.alert("Error", "Failed to claim reward. Please try again.");
     }

@@ -79,7 +79,7 @@ const ForgotPassword: React.FC = () => {
                 Forgot Password?
               </Text>
               <Text className="text-blue-100 text-center text-base opacity-90 leading-6">
-                No worries! We'll help you{'\n'}reset your password securely
+                No worries! We&apos;ll help you{'\n'}reset your password securely
               </Text>
             </View>
           </View>
@@ -92,7 +92,7 @@ const ForgotPassword: React.FC = () => {
               <View className="flex-row items-start">
                 <Text className="text-xl mr-3 mt-0.5">💡</Text>
                 <Text className="text-blue-700 text-sm leading-5 flex-1">
-                  Enter your registered email address and we'll send you a verification code to reset your password.
+                  Enter your registered email address and we&apos;ll send you a verification code to reset your password.
                 </Text>
               </View>
             </View>

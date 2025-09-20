@@ -13,11 +13,10 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import { WebView } from 'react-native-webview';
 
 const { width, height } = Dimensions.get('window');
 
-interface SDGGoal {
+type SDGGoal = {
   id: number;
   title: string;
   description: string;
@@ -27,16 +26,17 @@ interface SDGGoal {
   actions: string[];
   youtubeUrl: string;
   videoId: string;
-}
+};
 
-const sdgGoals: SDGGoal[] = [
+export const sdgGoals: SDGGoal[] = [
   {
     id: 1,
     title: "No Poverty",
     description: "End poverty in all its forms everywhere",
     color: "#E5243B",
     icon: "people-outline",
-    details: "Eradicating poverty is not a task of charity, it's an act of justice and the key to unlocking an enormous human potential.",
+    details:
+      "Eradicating poverty is not a task of charity, it's an act of justice and the key to unlocking an enormous human potential.",
     actions: ["Support local businesses", "Donate to poverty-focused NGOs", "Volunteer in community programs"],
     youtubeUrl: "https://www.youtube.com/watch?v=Xe8fIjxicoo",
     videoId: "Xe8fIjxicoo"
@@ -47,7 +47,8 @@ const sdgGoals: SDGGoal[] = [
     description: "End hunger, achieve food security and improved nutrition",
     color: "#DDA63A",
     icon: "restaurant-outline",
-    details: "A world with zero hunger can positively impact our economies, health, education, equality and social development.",
+    details:
+      "A world with zero hunger can positively impact our economies, health, education, equality and social development.",
     actions: ["Reduce food waste", "Support sustainable farming", "Donate to food banks"],
     youtubeUrl: "https://www.youtube.com/watch?v=2Vbk4oUXcK4",
     videoId: "2Vbk4oUXcK4"
@@ -58,7 +59,8 @@ const sdgGoals: SDGGoal[] = [
     description: "Ensure healthy lives and promote well-being for all",
     color: "#4C9F38",
     icon: "heart-outline",
-    details: "Health is a fundamental human right and essential for sustainable development.",
+    details:
+      "Health is a fundamental human right and essential for sustainable development.",
     actions: ["Maintain personal hygiene", "Exercise regularly", "Support healthcare initiatives"],
     youtubeUrl: "https://www.youtube.com/watch?v=Qgn_FD7pFKw",
     videoId: "Qgn_FD7pFKw"
@@ -69,7 +71,8 @@ const sdgGoals: SDGGoal[] = [
     description: "Ensure inclusive and equitable quality education",
     color: "#C5192D",
     icon: "school-outline",
-    details: "Education is the most powerful weapon which you can use to change the world.",
+    details:
+      "Education is the most powerful weapon which you can use to change the world.",
     actions: ["Read regularly", "Support education programs", "Share knowledge with others"],
     youtubeUrl: "https://www.youtube.com/watch?v=73ExwNeFG0E",
     videoId: "73ExwNeFG0E"
@@ -80,7 +83,8 @@ const sdgGoals: SDGGoal[] = [
     description: "Achieve gender equality and empower all women and girls",
     color: "#FF3A21",
     icon: "people-circle-outline",
-    details: "Gender equality is not only a fundamental human right, but a necessary foundation for a peaceful world.",
+    details:
+      "Gender equality is not only a fundamental human right, but a necessary foundation for a peaceful world.",
     actions: ["Promote equal opportunities", "Support women-led businesses", "Challenge stereotypes"],
     youtubeUrl: "https://www.youtube.com/watch?v=C-LnQxOXPG0",
     videoId: "C-LnQxOXPG0"
@@ -91,7 +95,8 @@ const sdgGoals: SDGGoal[] = [
     description: "Ensure availability of water and sanitation for all",
     color: "#26BDE2",
     icon: "water-outline",
-    details: "Water is life. Access to safe water and sanitation is a human right.",
+    details:
+      "Water is life. Access to safe water and sanitation is a human right.",
     actions: ["Conserve water", "Support clean water projects", "Avoid water pollution"],
     youtubeUrl: "https://www.youtube.com/watch?v=0j5cFPFhgJU",
     videoId: "0j5cFPFhgJU"
@@ -102,7 +107,8 @@ const sdgGoals: SDGGoal[] = [
     description: "Ensure access to affordable, reliable, sustainable energy",
     color: "#FCC30B",
     icon: "flash-outline",
-    details: "Energy is central to nearly every major challenge and opportunity the world faces today.",
+    details:
+      "Energy is central to nearly every major challenge and opportunity the world faces today.",
     actions: ["Use renewable energy", "Improve energy efficiency", "Support clean energy projects"],
     youtubeUrl: "https://www.youtube.com/watch?v=LpdVQKhgmDI",
     videoId: "LpdVQKhgmDI"
@@ -113,7 +119,8 @@ const sdgGoals: SDGGoal[] = [
     description: "Promote sustained, inclusive economic growth and employment",
     color: "#A21942",
     icon: "briefcase-outline",
-    details: "Economic growth should be a shared benefit that improves lives and doesn't harm the environment.",
+    details:
+      "Economic growth should be a shared benefit that improves lives and doesn't harm the environment.",
     actions: ["Support fair trade", "Promote workplace equality", "Develop skills continuously"],
     youtubeUrl: "https://www.youtube.com/watch?v=RWsx1X8PV_A",
     videoId: "RWsx1X8PV_A"
@@ -124,7 +131,8 @@ const sdgGoals: SDGGoal[] = [
     description: "Build resilient infrastructure and foster innovation",
     color: "#FD6925",
     icon: "construct-outline",
-    details: "Innovation and infrastructure are crucial drivers of economic growth and development.",
+    details:
+      "Innovation and infrastructure are crucial drivers of economic growth and development.",
     actions: ["Embrace technology", "Support research", "Invest in sustainable infrastructure"],
     youtubeUrl: "https://www.youtube.com/watch?v=tKLY891gJpE",
     videoId: "tKLY891gJpE"
@@ -135,7 +143,8 @@ const sdgGoals: SDGGoal[] = [
     description: "Reduce inequality within and among countries",
     color: "#DD1367",
     icon: "scale-outline",
-    details: "Reducing inequalities is not only a moral imperative but also essential for sustainable development.",
+    details:
+      "Reducing inequalities is not only a moral imperative but also essential for sustainable development.",
     actions: ["Advocate for equal rights", "Support inclusive policies", "Challenge discrimination"],
     youtubeUrl: "https://www.youtube.com/watch?v=4q-bTmPp-3Y",
     videoId: "4q-bTmPp-3Y"
@@ -146,7 +155,8 @@ const sdgGoals: SDGGoal[] = [
     description: "Make cities and settlements inclusive, safe, resilient",
     color: "#FD9D24",
     icon: "business-outline",
-    details: "Cities are hubs for ideas, commerce, culture, science, productivity, social development and much more.",
+    details:
+      "Cities are hubs for ideas, commerce, culture, science, productivity, social development and much more.",
     actions: ["Use public transport", "Support urban planning", "Promote green spaces"],
     youtubeUrl: "https://www.youtube.com/watch?v=qHGjfz5sf6k",
     videoId: "qHGjfz5sf6k"
@@ -157,7 +167,8 @@ const sdgGoals: SDGGoal[] = [
     description: "Ensure sustainable consumption and production patterns",
     color: "#BF8B2E",
     icon: "refresh-outline",
-    details: "We must learn to live within the means of our planet and change our consumption patterns.",
+    details:
+      "We must learn to live within the means of our planet and change our consumption patterns.",
     actions: ["Reduce, reuse, recycle", "Buy sustainable products", "Minimize waste"],
     youtubeUrl: "https://www.youtube.com/watch?v=_xqnQj7EGMU",
     videoId: "_xqnQj7EGMU"
@@ -168,7 +179,8 @@ const sdgGoals: SDGGoal[] = [
     description: "Take urgent action to combat climate change",
     color: "#3F7E44",
     icon: "earth-outline",
-    details: "Climate change is a global challenge that affects everyone, everywhere.",
+    details:
+      "Climate change is a global challenge that affects everyone, everywhere.",
     actions: ["Reduce carbon footprint", "Support renewable energy", "Plant trees"],
     youtubeUrl: "https://www.youtube.com/watch?v=ipVxxxqwBQw",
     videoId: "ipVxxxqwBQw"
@@ -179,7 +191,8 @@ const sdgGoals: SDGGoal[] = [
     description: "Conserve and use oceans, seas and marine resources",
     color: "#0A97D9",
     icon: "fish-outline",
-    details: "Our oceans drive global systems that make Earth habitable for humankind.",
+    details:
+      "Our oceans drive global systems that make Earth habitable for humankind.",
     actions: ["Reduce plastic use", "Support marine conservation", "Choose sustainable seafood"],
     youtubeUrl: "https://www.youtube.com/watch?v=F-yDDb_cn_I",
     videoId: "F-yDDb_cn_I"
@@ -190,7 +203,8 @@ const sdgGoals: SDGGoal[] = [
     description: "Protect, restore and promote sustainable use of ecosystems",
     color: "#56C02B",
     icon: "leaf-outline",
-    details: "Forests cover 30% of the Earth's surface and are essential for our survival.",
+    details:
+      "Forests cover 30% of the Earth's surface and are essential for our survival.",
     actions: ["Plant trees", "Support conservation", "Protect biodiversity"],
     youtubeUrl: "https://www.youtube.com/watch?v=0Puv0Pss33M",
     videoId: "0Puv0Pss33M"
@@ -201,7 +215,8 @@ const sdgGoals: SDGGoal[] = [
     description: "Promote peaceful and inclusive societies",
     color: "#00689D",
     icon: "shield-checkmark-outline",
-    details: "Peace, justice and strong institutions are fundamental for sustainable development.",
+    details:
+      "Peace, justice and strong institutions are fundamental for sustainable development.",
     actions: ["Promote non-violence", "Support justice initiatives", "Participate in democracy"],
     youtubeUrl: "https://www.youtube.com/watch?v=6KIeB8iNX-w",
     videoId: "6KIeB8iNX-w"
@@ -212,12 +227,14 @@ const sdgGoals: SDGGoal[] = [
     description: "Strengthen means of implementation and global partnership",
     color: "#19486A",
     icon: "handshake-outline",
-    details: "The SDGs can only be realized with strong global partnerships and cooperation.",
+    details:
+      "The SDGs can only be realized with strong global partnerships and cooperation.",
     actions: ["Collaborate across sectors", "Share resources", "Build networks"],
     youtubeUrl: "https://www.youtube.com/watch?v=0XTBYMfZyrM",
     videoId: "0XTBYMfZyrM"
   }
 ];
+
 
 const eWasteInfo = {
   title: "E-Waste Management",
@@ -249,7 +266,7 @@ export default function Learn() {
   const [selectedGoal, setSelectedGoal] = useState<SDGGoal | null>(null);
   const [modalVisible, setModalVisible] = useState(false);
   const [showVideo, setShowVideo] = useState(false);
-  const [currentVideoId, setCurrentVideoId] = useState('');
+  const [, setCurrentVideoId] = useState('');
   const scrollY = useRef(new Animated.Value(0)).current;
   const scaleAnim = useRef(new Animated.Value(1)).current;
 
@@ -281,6 +298,7 @@ export default function Learn() {
       } else {
         Alert.alert("Error", "Unable to open YouTube. Please check if YouTube app is installed.");
       }
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (error) {
       Alert.alert("Error", "Something went wrong while opening the video.");
     }

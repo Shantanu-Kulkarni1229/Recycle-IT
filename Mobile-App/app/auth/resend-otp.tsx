@@ -106,7 +106,7 @@ const ResendOtp: React.FC = () => {
             </View>
             <Text className="text-2xl font-bold text-gray-900 mb-2">Resend OTP</Text>
             <Text className="text-gray-600 text-center leading-6 px-4">
-              Didn't receive the verification code? We'll send a new one to your email address.
+              Didn&apos;t receive the verification code? We&apos;ll send a new one to your email address.
             </Text>
           </View>
         </View>

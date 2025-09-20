@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Eye, EyeOff, User, Lock, ArrowRight, Mail, Recycle, Leaf, Shield } from 'lucide-react';
 import LegalAgreementModal from './LegalAgreementModal';
 import { authAPI } from '../services/completeAPI';
+import logo from '../assets/Logo.png';
 
 interface LoginProps {
   onLogin: () => void;
@@ -137,9 +138,9 @@ const Login: React.FC<LoginProps> = ({ onLogin, onSignUp }) => {
       <div className="bg-gradient-to-r from-emerald-600 via-green-600 to-teal-600 pt-16 pb-12 px-6 relative z-10 shadow-2xl shadow-green-900/20">
         <div className="max-w-md mx-auto text-center">
           {/* App Logo */}
-          <div className="bg-white/95 backdrop-blur-sm rounded-2xl p-6 mb-6 shadow-xl shadow-green-900/20 inline-block transform transition-all duration-500 hover:scale-105 hover:rotate-2 animate-gentle-bounce">
+          <div className="bg-white/95 backdrop-blur-sm rounded-full p-1 mb-6 shadow-xl shadow-green-900/20 inline-block transform transition-all duration-500 hover:scale-105 hover:rotate-2 animate-gentle-bounce">
             <div className="relative">
-              <Recycle className="w-10 h-10 text-green-600 animate-spin-slow" />
+              <img src={logo} alt="Recycle IT Logo" className="w-32 h-32 object-contain" />
               <div className="absolute -top-1 -right-1 w-4 h-4 bg-emerald-500 rounded-full animate-pulse"></div>
             </div>
           </div>
