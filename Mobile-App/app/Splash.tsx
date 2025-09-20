@@ -1,9 +1,8 @@
 import React, { useEffect, useState } from "react";
-import { View, Text, ActivityIndicator, Animated, Easing, Dimensions, StatusBar } from "react-native";
+import { View, Text, ActivityIndicator, Animated, Easing, Dimensions, StatusBar, Image } from "react-native";
 import { useRouter } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useUser } from "@/context/UserContext";
-import { Ionicons } from "@expo/vector-icons";
 
 const { width, height } = Dimensions.get('window');
 
@@ -148,7 +147,7 @@ export default function Splash() {
   return (
     <View style={{
       flex: 1,
-      backgroundColor: '#0d4f3c', // Deep professional green
+      backgroundColor: '#4CAF50', // Lighter green color
       justifyContent: 'center',
       alignItems: 'center',
     }}>
@@ -159,7 +158,7 @@ export default function Splash() {
         left: 0,
         right: 0,
         bottom: 0,
-        backgroundColor: '#0d4f3c', // Replace with a solid color or use an ImageBackground for gradients
+        backgroundColor: '#4CAF50',
         opacity: 0.8,
       }} />
 
@@ -171,7 +170,7 @@ export default function Splash() {
             position: 'absolute',
             width: 4,
             height: 4,
-            backgroundColor: '#4ade80',
+            backgroundColor: '#A5D6A7', // Lighter particle color
             borderRadius: 2,
             transform: [
               { translateX: particle.x },
@@ -200,14 +199,14 @@ export default function Splash() {
             position: 'absolute',
             width: 120,
             height: 120,
-            backgroundColor: '#22c55e',
+            backgroundColor: '#66BB6A', // Lighter glow color
             borderRadius: 60,
             opacity: 0.1,
             transform: [{ scale: pulseAnim }],
           }}
         />
 
-        {/* Main icon */}
+        {/* Logo */}
         <Animated.View
           style={{
             marginBottom: 40,
@@ -221,19 +220,21 @@ export default function Splash() {
           }}
         >
           <View style={{
-            width: 80,
-            height: 80,
-            backgroundColor: '#22c55e',
-            borderRadius: 40,
+            width: 100,
+            height: 100,
+            borderRadius: 50,
             justifyContent: 'center',
             alignItems: 'center',
-            shadowColor: '#22c55e',
+            shadowColor: '#66BB6A',
             shadowOffset: { width: 0, height: 8 },
             shadowOpacity: 0.3,
             shadowRadius: 16,
             elevation: 8,
           }}>
-            <Ionicons name="leaf" size={40} color="#ffffff" />
+            <Image 
+              source={require('../assets/images/Logo.png')} 
+              style={{ width: 80, height: 80, resizeMode: 'contain' }}
+            />
           </View>
         </Animated.View>
 
@@ -271,7 +272,7 @@ export default function Splash() {
           <Text
             style={{
               fontSize: 16,
-              color: '#a7f3d0',
+              color: '#E8F5E9', // Lighter text color
               textAlign: 'center',
               marginBottom: 60,
               fontWeight: '400',
@@ -296,12 +297,12 @@ export default function Splash() {
               paddingVertical: 16,
               borderRadius: 12,
               borderWidth: 1,
-              borderColor: 'rgba(34, 197, 94, 0.3)',
+              borderColor: 'rgba(102, 187, 106, 0.3)', // Lighter border color
               backdropFilter: 'blur(10px)',
             }}>
               <ActivityIndicator 
                 size="small" 
-                color="#4ade80" 
+                color="#A5D6A7" // Lighter indicator color
                 style={{ marginBottom: 12 }}
               />
               <Text
@@ -333,7 +334,7 @@ export default function Splash() {
       >
         <Text
           style={{
-            color: '#a7f3d0',
+            color: '#E8F5E9', // Lighter footer text color
             fontSize: 14,
             fontWeight: '400',
             textAlign: 'center',

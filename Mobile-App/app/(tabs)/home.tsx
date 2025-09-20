@@ -9,6 +9,7 @@ import {
   StatusBar,
   Easing,
   SafeAreaView,
+  Modal,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
@@ -39,6 +40,56 @@ export default function Home() {
   const [currentTip, setCurrentTip] = useState(0);
   const [impactCounter, setImpactCounter] = useState(0);
   const [isAnimatingTruck, setIsAnimatingTruck] = useState(false);
+  
+  // Notification states
+  const [showNotificationModal, setShowNotificationModal] = useState(false);
+  const [notifications, setNotifications] = useState([
+    {
+      id: '1',
+      type: 'pickup_scheduled',
+      title: '🚛 Pickup Scheduled!',
+      message: 'Your iPhone 12 pickup has been scheduled for tomorrow at 2:00 PM',
+      time: '2 hours ago',
+      read: false,
+      icon: '🚛',
+      color: '#10b981'
+    },
+    {
+      id: '2',
+      type: 'pickup_completed',
+      title: '✅ Pickup Completed',
+      message: 'Your Dell Laptop has been successfully collected and is being processed',
+      time: '1 day ago',
+      read: false,
+      icon: '✅',
+      color: '#059669'
+    },
+    {
+      id: '3',
+      type: 'certificate',
+      title: '🏆 Certificate Ready',
+      message: 'Your e-waste recycling certificate is now available for download',
+      time: '3 days ago',
+      read: true,
+      icon: '🏆',
+      color: '#f59e0b'
+    },
+    {
+      id: '4',
+      type: 'milestone',
+      title: '🌟 Milestone Achieved!',
+      message: 'Congratulations! You\'ve recycled 50kg of e-waste this year',
+      time: '1 week ago',
+      read: true,
+      icon: '🌟',
+      color: '#8b5cf6'
+    }
+  ]);
+
+  // Notification animations
+  const notificationModalScale = useRef(new Animated.Value(0)).current;
+  const notificationModalOpacity = useRef(new Animated.Value(0)).current;
+  const notificationSlideAnim = useRef(new Animated.Value(50)).current;
   
   const eWasteTips = [
     "📱 Donate or sell old electronics that still work instead of discarding them",
@@ -265,7 +316,89 @@ export default function Home() {
         router.push("/pickup-schedule");
       }, 200);
     });
-  }, [isAnimatingTruck, router]);
+  }, [isAnimatingTruck, router, buttonBackgroundAnim, buttonScaleAnim, textOpacityAnim, truckOpacityAnim, truckPositionAnim]);
+
+  // Notification functions
+  const openNotificationModal = useCallback(() => {
+    setShowNotificationModal(true);
+    
+    // Reset animations
+    notificationModalScale.setValue(0);
+    notificationModalOpacity.setValue(0);
+    notificationSlideAnim.setValue(50);
+    
+    // Animate modal entrance
+    Animated.parallel([
+      Animated.spring(notificationModalScale, {
+        toValue: 1,
+        tension: 50,
+        friction: 8,
+        useNativeDriver: true,
+      }),
+      Animated.timing(notificationModalOpacity, {
+        toValue: 1,
+        duration: 300,
+        easing: Easing.out(Easing.ease),
+        useNativeDriver: true,
+      }),
+      Animated.timing(notificationSlideAnim, {
+        toValue: 0,
+        duration: 400,
+        easing: Easing.out(Easing.ease),
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, [notificationModalScale, notificationModalOpacity, notificationSlideAnim]);
+
+  const closeNotificationModal = useCallback(() => {
+    Animated.parallel([
+      Animated.timing(notificationModalScale, {
+        toValue: 0,
+        duration: 250,
+        easing: Easing.in(Easing.ease),
+        useNativeDriver: true,
+      }),
+      Animated.timing(notificationModalOpacity, {
+        toValue: 0,
+        duration: 250,
+        easing: Easing.in(Easing.ease),
+        useNativeDriver: true,
+      }),
+    ]).start(() => {
+      setShowNotificationModal(false);
+    });
+  }, [notificationModalScale, notificationModalOpacity]);
+
+  const markNotificationAsRead = useCallback((id: string) => {
+    setNotifications(prev => 
+      prev.map(notification => 
+        notification.id === id 
+          ? { ...notification, read: true }
+          : notification
+      )
+    );
+  }, []);
+
+  const addNewNotification = useCallback((newNotification: any) => {
+    const notification = {
+      id: Date.now().toString(),
+      time: 'Just now',
+      read: false,
+      ...newNotification
+    };
+    setNotifications(prev => [notification, ...prev]);
+  }, []);
+
+  // Function to simulate adding a pickup notification (for demo purposes)
+  const addPickupNotification = useCallback((deviceType: string, brand: string, model: string) => {
+    addNewNotification({
+      type: 'pickup_scheduled',
+      title: '🚛 Pickup Scheduled!',
+      message: `Your ${brand} ${model} pickup has been scheduled successfully`,
+      icon: '🚛',
+      color: '#10b981'
+    });
+  }, [addNewNotification]);
 
   // Interpolated values for smoother animations
   const spin = rotateAnim.interpolate({
@@ -414,12 +547,15 @@ export default function Home() {
             <TouchableOpacity 
               activeOpacity={0.8}
               className="relative"
+              onPress={openNotificationModal}
             >
               <View className="bg-white/20 p-[14px] rounded-[20px] backdrop-blur-sm">
                 <Ionicons name="notifications" size={26} color="#fff" />
               </View>
               <View className="absolute -top-0.5 -right-0.5 bg-amber-400 w-[22px] h-[22px] rounded-[11px] items-center justify-center border-2 border-white">
-                <Text className="text-xs font-bold text-slate-900">2</Text>
+                <Text className="text-xs font-bold text-slate-900">
+                  {notifications.filter(n => !n.read).length}
+                </Text>
               </View>
             </TouchableOpacity>
           </View>
@@ -548,7 +684,7 @@ export default function Home() {
 
         {/* E-Waste Tips Card with better animations */}
         <Animated.View
-          className="mx-6 mb-6"
+          className="mx-6 mb-6 p-5 rounded-full"
           style={{
             opacity: fadeAnim,
             transform: [{ translateY: slideAnimNative }],
@@ -561,7 +697,7 @@ export default function Home() {
             end={{ x: 1, y: 1 }}
             className="rounded-6 p-6 shadow-lg shadow-green-600/10 elevation-6"
           >
-            <View className="flex-row items-center mb-4">
+            <View className="flex-row items-center mb-4 rounded-4">
               <Ionicons name="bulb" size={32} color="#059669" />
               <Text className="text-green-800 text-[22px] font-bold flex-1 ml-3">
                 E-Waste Tips
@@ -645,7 +781,7 @@ export default function Home() {
             transform: [{ translateY: slideAnimNative }],
           }}
         >
-          <View className="mb-4">
+          <View className="mb-4 rounded-sm">
             <Text className="text-slate-800 text-[22px] font-bold mb-1">
               E-Waste Categories
             </Text>
@@ -791,6 +927,192 @@ export default function Home() {
           </LinearGradient>
         </Animated.View>
       </ScrollView>
+
+      {/* Notification Modal */}
+      <Modal
+        visible={showNotificationModal}
+        transparent={true}
+        animationType="none"
+        onRequestClose={closeNotificationModal}
+      >
+        <View className="flex-1 bg-black/50" style={{ backgroundColor: 'rgba(0, 0, 0, 0.5)' }}>
+          <TouchableOpacity 
+            className="flex-1" 
+            activeOpacity={1} 
+            onPress={closeNotificationModal}
+          >
+            <View className="flex-1 justify-center px-4">
+              <Animated.View
+                style={{
+                  transform: [
+                    { scale: notificationModalScale },
+                    { translateY: notificationSlideAnim }
+                  ],
+                  opacity: notificationModalOpacity,
+                }}
+                className="bg-white rounded-3xl shadow-2xl max-h-[80%]"
+              >
+                <TouchableOpacity activeOpacity={1} onPress={(e) => e.stopPropagation()}>
+                  {/* Header */}
+                  <View className="bg-gradient-to-r from-green-500 to-emerald-500 px-6 py-6 rounded-t-3xl">
+                    <View className="flex-row items-center justify-between">
+                      <View className="flex-row items-center">
+                        <View className="bg-white/20 p-3 rounded-full mr-3">
+                          <Ionicons name="notifications" size={24} color="#fff" />
+                        </View>
+                        <View>
+                          <Text className="text-white text-xl font-bold">Notifications</Text>
+                          <Text className="text-green-100 text-sm">
+                            {notifications.filter(n => !n.read).length} unread messages
+                          </Text>
+                        </View>
+                      </View>
+                      <TouchableOpacity
+                        onPress={closeNotificationModal}
+                        className="bg-white/20 p-2 rounded-full"
+                      >
+                        <Ionicons name="close" size={20} color="#fff" />
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+
+                  {/* Notifications List */}
+                  <ScrollView 
+                    className="max-h-96 px-2 py-2"
+                    showsVerticalScrollIndicator={false}
+                    bounces={true}
+                  >
+                    {notifications.length === 0 ? (
+                      <View className="items-center py-12">
+                        <View className="bg-gray-100 p-6 rounded-full mb-4">
+                          <Ionicons name="notifications-off" size={48} color="#9ca3af" />
+                        </View>
+                        <Text className="text-gray-500 text-lg font-medium mb-2">No Notifications</Text>
+                        <Text className="text-gray-400 text-center">
+                          You&apos;re all caught up! New notifications will appear here.
+                        </Text>
+                      </View>
+                    ) : (
+                      notifications.map((notification, index) => (
+                        <TouchableOpacity
+                          key={notification.id}
+                          onPress={() => markNotificationAsRead(notification.id)}
+                          className={`mx-2 mb-3 p-4 rounded-2xl border ${
+                            notification.read 
+                              ? 'bg-gray-50 border-gray-200' 
+                              : 'bg-white border-green-200 shadow-sm'
+                          }`}
+                          style={{
+                            shadowColor: notification.read ? '#000' : notification.color,
+                            shadowOffset: { width: 0, height: 2 },
+                            shadowOpacity: notification.read ? 0.05 : 0.1,
+                            shadowRadius: 4,
+                            elevation: notification.read ? 1 : 3,
+                          }}
+                        >
+                          <View className="flex-row items-start">
+                            {/* Icon */}
+                            <View 
+                              className="p-3 rounded-full mr-3 mt-0.5"
+                              style={{ backgroundColor: `${notification.color}15` }}
+                            >
+                              <Text style={{ fontSize: 20 }}>{notification.icon}</Text>
+                            </View>
+
+                            {/* Content */}
+                            <View className="flex-1">
+                              <View className="flex-row items-center justify-between mb-1">
+                                <Text 
+                                  className={`font-bold text-base ${
+                                    notification.read ? 'text-gray-600' : 'text-gray-800'
+                                  }`}
+                                >
+                                  {notification.title}
+                                </Text>
+                                {!notification.read && (
+                                  <View 
+                                    className="w-2.5 h-2.5 rounded-full ml-2"
+                                    style={{ backgroundColor: notification.color }}
+                                  />
+                                )}
+                              </View>
+                              
+                              <Text 
+                                className={`text-sm leading-5 mb-2 ${
+                                  notification.read ? 'text-gray-500' : 'text-gray-700'
+                                }`}
+                              >
+                                {notification.message}
+                              </Text>
+                              
+                              <View className="flex-row items-center justify-between">
+                                <Text className="text-xs text-gray-400 font-medium">
+                                  {notification.time}
+                                </Text>
+                                
+                                {/* Action buttons based on type */}
+                                {notification.type === 'pickup_scheduled' && (
+                                  <TouchableOpacity 
+                                    className="bg-green-100 px-3 py-1.5 rounded-full"
+                                    onPress={() => {
+                                      closeNotificationModal();
+                                      // Navigate to pickup details
+                                    }}
+                                  >
+                                    <Text className="text-green-700 text-xs font-medium">
+                                      View Details
+                                    </Text>
+                                  </TouchableOpacity>
+                                )}
+                                
+                                {notification.type === 'certificate' && (
+                                  <TouchableOpacity 
+                                    className="bg-amber-100 px-3 py-1.5 rounded-full"
+                                    onPress={() => {
+                                      // Handle certificate download
+                                    }}
+                                  >
+                                    <Text className="text-amber-700 text-xs font-medium">
+                                      Download
+                                    </Text>
+                                  </TouchableOpacity>
+                                )}
+                              </View>
+                            </View>
+                          </View>
+                        </TouchableOpacity>
+                      ))
+                    )}
+                  </ScrollView>
+
+                  {/* Footer Actions */}
+                  <View className="px-6 py-4 border-t border-gray-100">
+                    <View className="flex-row space-x-3">
+                      <TouchableOpacity
+                        onPress={() => {
+                          setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+                        }}
+                        className="flex-1 bg-gray-100 py-3 rounded-xl items-center"
+                      >
+                        <Text className="text-gray-700 font-medium">Mark All Read</Text>
+                      </TouchableOpacity>
+                      
+                      <TouchableOpacity
+                        onPress={() => {
+                          setNotifications([]);
+                        }}
+                        className="flex-1 bg-red-100 py-3 rounded-xl items-center"
+                      >
+                        <Text className="text-red-700 font-medium">Clear All</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                </TouchableOpacity>
+              </Animated.View>
+            </View>
+          </TouchableOpacity>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }

@@ -114,6 +114,25 @@ export default function PickupSchedule() {
   const [loadingRecyclers, setLoadingRecyclers] = useState(false);
   const [recyclerSelectionMode, setRecyclerSelectionMode] = useState<'auto' | 'manual' | null>(null);
 
+  // Celebration animation states
+  const [showCelebrationModal, setShowCelebrationModal] = useState(false);
+  const celebrationScale = useState(new Animated.Value(0))[0];
+  const celebrationOpacity = useState(new Animated.Value(0))[0];
+  const confettiAnimations = useState(() => 
+    Array.from({ length: 15 }, () => ({
+      translateY: new Animated.Value(-100),
+      translateX: new Animated.Value(Math.random() * width),
+      rotate: new Animated.Value(0),
+      scale: new Animated.Value(1),
+    }))
+  )[0];
+  const floatingIconsAnimations = useState(() =>
+    Array.from({ length: 8 }, () => ({
+      translateY: new Animated.Value(0),
+      opacity: new Animated.Value(1),
+    }))
+  )[0];
+
   // Request permissions on component mount
   useEffect(() => {
     requestPermissions();
@@ -222,6 +241,118 @@ export default function PickupSchedule() {
       })
     ]).start();
   }, [fadeAnim, slideAnim]);
+
+  // Celebration animation functions
+  const startCelebrationAnimation = useCallback(() => {
+    setShowCelebrationModal(true);
+    
+    // Reset animation values
+    celebrationScale.setValue(0);
+    celebrationOpacity.setValue(0);
+    confettiAnimations.forEach(anim => {
+      anim.translateY.setValue(-100);
+      anim.translateX.setValue(Math.random() * width);
+      anim.rotate.setValue(0);
+      anim.scale.setValue(1);
+    });
+    floatingIconsAnimations.forEach(anim => {
+      anim.translateY.setValue(0);
+      anim.opacity.setValue(1);
+    });
+
+    // Main modal animation
+    Animated.parallel([
+      Animated.spring(celebrationScale, {
+        toValue: 1,
+        tension: 50,
+        friction: 7,
+        useNativeDriver: true,
+      }),
+      Animated.timing(celebrationOpacity, {
+        toValue: 1,
+        duration: 300,
+        useNativeDriver: true,
+      })
+    ]).start();
+
+    // Confetti animation
+    const confettiAnimationLoop = Animated.stagger(100, 
+      confettiAnimations.map(anim => 
+        Animated.parallel([
+          Animated.timing(anim.translateY, {
+            toValue: Dimensions.get('window').height + 100,
+            duration: 3000 + Math.random() * 2000,
+            useNativeDriver: true,
+          }),
+          Animated.timing(anim.rotate, {
+            toValue: 360 * (2 + Math.random() * 3),
+            duration: 3000 + Math.random() * 2000,
+            useNativeDriver: true,
+          }),
+          Animated.sequence([
+            Animated.timing(anim.scale, {
+              toValue: 1.2,
+              duration: 500,
+              useNativeDriver: true,
+            }),
+            Animated.timing(anim.scale, {
+              toValue: 0.8,
+              duration: 2500 + Math.random() * 2000,
+              useNativeDriver: true,
+            })
+          ])
+        ])
+      )
+    );
+
+    // Floating icons animation
+    const floatingIconsLoop = Animated.stagger(200,
+      floatingIconsAnimations.map(anim =>
+        Animated.loop(
+          Animated.sequence([
+            Animated.timing(anim.translateY, {
+              toValue: -30,
+              duration: 2000,
+              easing: Easing.inOut(Easing.ease),
+              useNativeDriver: true,
+            }),
+            Animated.timing(anim.translateY, {
+              toValue: 0,
+              duration: 2000,
+              easing: Easing.inOut(Easing.ease),
+              useNativeDriver: true,
+            })
+          ]),
+          { iterations: -1 }
+        )
+      )
+    );
+
+    confettiAnimationLoop.start();
+    floatingIconsLoop.start();
+
+    // Auto close after 5 seconds
+    setTimeout(() => {
+      closeCelebrationModal();
+    }, 5000);
+  }, [celebrationScale, celebrationOpacity, confettiAnimations, floatingIconsAnimations]);
+
+  const closeCelebrationModal = useCallback(() => {
+    Animated.parallel([
+      Animated.timing(celebrationScale, {
+        toValue: 0,
+        duration: 300,
+        useNativeDriver: true,
+      }),
+      Animated.timing(celebrationOpacity, {
+        toValue: 0,
+        duration: 300,
+        useNativeDriver: true,
+      })
+    ]).start(() => {
+      setShowCelebrationModal(false);
+    });
+  }, [celebrationScale, celebrationOpacity]);
 
   // Handle input changes
   const handleChange = (key: keyof FormData, value: string) => {
@@ -438,47 +569,52 @@ export default function PickupSchedule() {
         form.preferredPickupDate
       );
 
-      // 🎉 Show beautiful success alert
-      const recyclerMessage = recyclerSelectionMode === 'manual' && selectedRecycler 
-        ? ` Your chosen recycler: ${selectedRecycler.companyName}.`
-        : ' Our system will assign the best nearby recycler for you.';
+      // 🎉 Show celebration animation
+      startCelebrationAnimation();
 
-      showAlert({
-        type: 'success',
-        title: '🎉 Pickup Scheduled Successfully!',
-        message: `Your ${form.brand} ${form.model} pickup has been scheduled for ${new Date(form.preferredPickupDate).toLocaleDateString()}.${recyclerMessage} You'll receive a notification when our team is ready to collect your device.`,
-        primaryButton: {
-          text: 'Go to Home',
-          onPress: () => {
-            router.push("/(tabs)/home");
+      // 🎉 Show beautiful success alert after celebration
+      setTimeout(() => {
+        const recyclerMessage = recyclerSelectionMode === 'manual' && selectedRecycler 
+          ? ` Your chosen recycler: ${selectedRecycler.companyName}.`
+          : ' Our system will assign the best nearby recycler for you.';
+
+        showAlert({
+          type: 'success',
+          title: '🎉 Pickup Scheduled Successfully!',
+          message: `Your ${form.brand} ${form.model} pickup has been scheduled for ${new Date(form.preferredPickupDate).toLocaleDateString()}.${recyclerMessage} You'll receive a notification when our team is ready to collect your device.`,
+          primaryButton: {
+            text: 'Go to Home',
+            onPress: () => {
+              router.push("/(tabs)/home");
+            }
+          },
+          secondaryButton: {
+            text: 'Schedule Another',
+            onPress: () => {
+              // Reset form for another pickup
+              setForm({
+                deviceType: "",
+                brand: "",
+                model: "",
+                purchaseDate: "",
+                condition: "",
+                weight: "",
+                notes: "",
+                pickupAddress: "",
+                city: "",
+                state: "",
+                pincode: "",
+                preferredPickupDate: "",
+              });
+              setDeviceImages([]);
+              setDocuments([]);
+              setSelectedRecycler(null);
+              setRecyclerSelectionMode(null);
+              setCurrentSection(0);
+            }
           }
-        },
-        secondaryButton: {
-          text: 'Schedule Another',
-          onPress: () => {
-            // Reset form for another pickup
-            setForm({
-              deviceType: "",
-              brand: "",
-              model: "",
-              purchaseDate: "",
-              condition: "",
-              weight: "",
-              notes: "",
-              pickupAddress: "",
-              city: "",
-              state: "",
-              pincode: "",
-              preferredPickupDate: "",
-            });
-            setDeviceImages([]);
-            setDocuments([]);
-            setSelectedRecycler(null);
-            setRecyclerSelectionMode(null);
-            setCurrentSection(0);
-          }
-        }
-      });
+        });
+      }, 5500); // Show after celebration animation
 
     } catch (err: any) {
       console.error("Submit error:", err);
@@ -1432,6 +1568,129 @@ export default function PickupSchedule() {
           
           {/* Custom Alert Component */}
           <AlertComponent />
+
+          {/* Celebration Modal */}
+          <Modal
+            visible={showCelebrationModal}
+            transparent={true}
+            animationType="none"
+            onRequestClose={closeCelebrationModal}
+          >
+            <View className="flex-1 justify-center items-center" style={{ backgroundColor: 'rgba(0, 0, 0, 0.8)' }}>
+              {/* Confetti */}
+              {confettiAnimations.map((anim, index) => (
+                <Animated.View
+                  key={`confetti-${index}`}
+                  style={{
+                    position: 'absolute',
+                    transform: [
+                      { translateX: anim.translateX },
+                      { translateY: anim.translateY },
+                      { rotate: anim.rotate.interpolate({
+                        inputRange: [0, 360],
+                        outputRange: ['0deg', '360deg']
+                      }) },
+                      { scale: anim.scale }
+                    ],
+                  }}
+                >
+                  <View 
+                    style={{
+                      width: 8 + Math.random() * 6,
+                      height: 8 + Math.random() * 6,
+                      backgroundColor: ['#22c55e', '#10b981', '#06d6a0', '#ffd60a', '#ff6b6b', '#4ecdc4', '#45b7d1', '#96ceb4'][Math.floor(Math.random() * 8)],
+                      borderRadius: Math.random() > 0.5 ? 0 : 10,
+                    }} 
+                  />
+                </Animated.View>
+              ))}
+
+              {/* Floating Icons */}
+              {floatingIconsAnimations.map((anim, index) => {
+                const icons = ['🌍', '♻️', '🌳', '💚', '✨', '⚡', '💧', '🔥'];
+                return (
+                  <Animated.View
+                    key={`icon-${index}`}
+                    style={{
+                      position: 'absolute',
+                      left: 50 + (index * (width - 100) / 8),
+                      top: 200 + Math.random() * 400,
+                      transform: [
+                        { translateY: anim.translateY },
+                      ],
+                      opacity: anim.opacity,
+                    }}
+                  >
+                    <Text style={{ fontSize: 24 + Math.random() * 16 }}>
+                      {icons[index]}
+                    </Text>
+                  </Animated.View>
+                );
+              })}
+
+              {/* Main Celebration Content */}
+              <Animated.View
+                style={{
+                  transform: [{ scale: celebrationScale }],
+                  opacity: celebrationOpacity,
+                }}
+                className="bg-white rounded-3xl p-8 mx-6 items-center shadow-2xl"
+              >
+                {/* Header */}
+                <View className="items-center mb-6">
+                  <View className="bg-green-100 rounded-full p-4 mb-4">
+                    <Text style={{ fontSize: 48 }}>🎉</Text>
+                  </View>
+                  <Text className="text-green-800 text-2xl font-bold text-center mb-2">
+                    Pickup Confirmed!
+                  </Text>
+                </View>
+
+                {/* Message */}
+                <View className="items-center mb-6">
+                  <Text className="text-gray-700 text-lg text-center leading-6 mb-4">
+                    You just turned trash into <Text style={{ fontSize: 18 }}>🌍</Text> treasure! <Text style={{ fontSize: 18 }}>💚</Text>
+                  </Text>
+                  <Text className="text-gray-600 text-base text-center leading-6 mb-4">
+                    Thanks for choosing Recycle&apos;IT and making a real impact on sustainability. <Text style={{ fontSize: 16 }}>♻✨</Text>
+                  </Text>
+                  <Text className="text-gray-700 text-base text-center leading-6 mb-4">
+                    Keep going — every device you recycle saves the planet! <Text style={{ fontSize: 16 }}>🌳⚡💧</Text>
+                  </Text>
+                  <Text className="text-green-700 text-base text-center leading-6 font-medium">
+                    Keep up your streak <Text style={{ fontSize: 16 }}>🔥</Text> and climb the leaderboard — the planet is cheering for you! <Text style={{ fontSize: 16 }}>♻✨</Text>
+                  </Text>
+                </View>
+
+                {/* Action Buttons */}
+                <View className="w-full space-y-3">
+                  <TouchableOpacity
+                    onPress={() => {
+                      closeCelebrationModal();
+                      router.push("/(tabs)/home");
+                    }}
+                    className="bg-green-600 rounded-2xl p-4 items-center"
+                    style={{
+                      shadowColor: "#059669",
+                      shadowOffset: { width: 0, height: 4 },
+                      shadowOpacity: 0.3,
+                      shadowRadius: 6,
+                      elevation: 6,
+                    }}
+                  >
+                    <Text className="text-white text-lg font-bold">Continue to Home 🏠</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    onPress={closeCelebrationModal}
+                    className="bg-gray-100 rounded-2xl p-4 items-center"
+                  >
+                    <Text className="text-gray-700 text-base font-medium">Close</Text>
+                  </TouchableOpacity>
+                </View>
+              </Animated.View>
+            </View>
+          </Modal>
         </View>
       </TouchableWithoutFeedback>
     </KeyboardAvoidingView>
