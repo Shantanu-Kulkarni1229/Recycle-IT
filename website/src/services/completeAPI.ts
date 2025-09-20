@@ -68,6 +68,11 @@ export const authAPI = {
     const response = await api.post('/recyclers/resend-otp', { email });
     return response.data;
   },
+
+  acceptTerms: async (recyclerId: string) => {
+    const response = await api.post('/recyclers/accept-terms', { recyclerId });
+    return response.data;
+  },
 };
 
 // Profile APIs

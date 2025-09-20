@@ -42,14 +42,24 @@ const sendOTPEmail = async (email, otp, type = 'verification') => {
 };
 
 // Generic email sending function
-const sendEmail = async (to, subject, text, html = null) => {
+const sendEmail = async (to, subject, text = '', html = null) => {
   const mailOptions = {
-    from: process.env.EMAIL_FROM,
+    from: process.env.EMAIL_FROM || 'noreply@recycleit.com',
     to,
     subject,
-    text,
-    ...(html && { html })
+    ...(html && { html }) // Only include HTML if provided
   };
+
+  // If no HTML is provided, use text
+  if (!html && text) {
+    mailOptions.text = text;
+  } else if (html && !text) {
+    // If only HTML is provided, create a plain text version by stripping HTML tags
+    mailOptions.text = html.replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim();
+  } else if (html && text) {
+    // If both are provided, use both
+    mailOptions.text = text;
+  }
 
   try {
     const result = await transporter.sendMail(mailOptions);

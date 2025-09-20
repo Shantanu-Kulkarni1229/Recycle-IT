@@ -133,17 +133,19 @@ const RecyclerController = {
         address,
         city,
         state,
-        pincode
+        pincode,
+        termsAccepted: true,
+        termsAcceptedAt: new Date()
       });
 
-      // sign/aggre to the aggrement
-      if(recycler.aggreementSigned !== true){
-        return res.status(400).json({
-          success: false,
-          recycler:{id: recycler._id},
-          message: 'Please agree to the terms and conditions to proceed'
-        });
-      }
+      // Remove the incomplete agreement check since we handle it in frontend
+      // if(recycler.aggreementSigned !== true){
+      //   return res.status(400).json({
+      //     success: false,
+      //     recycler:{id: recycler._id},
+      //     message: 'Please agree to the terms and conditions to proceed'
+      //   });
+      // }
 
       if (req.files && req.files.length > 0) {
         const documents = req.files.map(file => ({
@@ -239,6 +241,16 @@ const RecyclerController = {
         return res.status(401).json({
           success: false,
           message: 'Please verify your email first'
+        });
+      }
+
+      if (!recycler.termsAccepted) {
+        return res.status(401).json({
+          success: false,
+          message: 'Please agree to the terms and conditions to proceed',
+          recycler: {
+            id: recycler._id
+          }
         });
       }
 
@@ -351,6 +363,63 @@ const RecyclerController = {
         message: 'New OTP sent to your email'
       });
     } catch (error) {
+      res.status(500).json({
+        success: false,
+        message: error.message
+      });
+    }
+  },
+
+  // Accept terms and conditions
+  acceptTerms: async (req, res) => {
+    try {
+      const { recyclerId } = req.body;
+
+      if (!recyclerId) {
+        return res.status(400).json({
+          success: false,
+          message: 'Recycler ID is required'
+        });
+      }
+
+      const recycler = await Recycler.findById(recyclerId);
+      if (!recycler) {
+        return res.status(404).json({
+          success: false,
+          message: 'Recycler not found'
+        });
+      }
+
+      if (!recycler.isVerified) {
+        return res.status(401).json({
+          success: false,
+          message: 'Please verify your email first'
+        });
+      }
+
+      // Update terms acceptance
+      recycler.termsAccepted = true;
+      recycler.termsAcceptedAt = new Date();
+      await recycler.save();
+
+      // Generate token for login
+      const token = generateToken(recycler._id, 'recycler');
+
+      res.json({
+        success: true,
+        message: 'Terms and conditions accepted successfully',
+        token,
+        recycler: {
+          _id: recycler._id,
+          companyName: recycler.companyName,
+          email: recycler.email,
+          isVerified: recycler.isVerified,
+          inspectionStatus: recycler.inspectionStatus,
+          termsAccepted: recycler.termsAccepted
+        }
+      });
+    } catch (error) {
+      console.error('Accept terms error:', error);
       res.status(500).json({
         success: false,
         message: error.message
