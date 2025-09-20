@@ -84,25 +84,23 @@ exports.inspectDevice = async (req, res) => {
 
 
     const pickup = await RecyclerPickup.findByIdAndUpdate(id, updateData, { new: true });
+    if (!pickup) return res.status(404).json({ success: false, message: "Pickup not found" });
 
-    // inspection array
-    const allInspectionImages = pickup.deviceConditionReport.inspectionImages;
-        if (inspectionImages.length === 0) {
-      return res.status(400).json({
-        success: false,
-        message: "Inspection images array is empty"
-      });
-    }
-    // add to blockchain network
-    const blockchainRecords = [];
-    for (const imageUrl of allInspectionImages) {
-      const record = await saveUrlToBlockchain(pickup._id, imageUrl);
+    // Always create a blockchain record for inspection
+    let blockchainRecords = [];
+    if (pickup.deviceConditionReport && pickup.deviceConditionReport.inspectionImages && pickup.deviceConditionReport.inspectionImages.length > 0) {
+      for (const imageUrl of pickup.deviceConditionReport.inspectionImages) {
+        const record = await saveUrlToBlockchain(pickup._id, imageUrl);
+        blockchainRecords.push(record);
+      }
+    } else {
+      // No images, create a blockchain record with a placeholder URL
+      const placeholderUrl = `inspection-no-image-${pickup._id}`;
+      const record = await saveUrlToBlockchain(pickup._id, placeholderUrl);
       blockchainRecords.push(record);
     }
 
-    if (!pickup) return res.status(404).json({ success: false, message: "Pickup not found" });
-
-    res.json({ success: true, message: "Inspection report updated", data: pickup });
+    res.json({ success: true, message: "Inspection report updated", data: pickup, blockchainRecords });
   } catch (error) {
     res.status(500).json({ success: false, message: "Error inspecting device", error: error.message });
   }

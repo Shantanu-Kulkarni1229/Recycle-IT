@@ -1,4 +1,5 @@
 const express = require("express");
+const router = express.Router();
 const uploadToCloudinary = require("../middleware/uploadToCloudinary");
 const {
   createPickup,
@@ -13,10 +14,13 @@ const {
   trackPickup,
   deletePickup,
   removePickupFile, // NEW
-  assignDeliveryPartner, // NEW
+  assignDeliveryPartner, // NEW,
+  inspectDevice
 } = require("../controllers/schedulePickupController");
+// NEW: Device inspection route with image upload
+router.put('/:id/inspect', inspectDevice);
 
-const router = express.Router();
+// Removed duplicate router declaration
 
 // Routes with file upload support
 router.post("/", 

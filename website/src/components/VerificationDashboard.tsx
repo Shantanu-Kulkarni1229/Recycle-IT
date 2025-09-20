@@ -88,12 +88,20 @@ const VerificationDashboard: React.FC<VerificationDashboardProps> = ({
           }
         });
 
-        const result = await response.json();
-        
-        if (result.success) {
+        let result;
+        try {
+          result = await response.json();
+        } catch (jsonError) {
+          // If response is not JSON, set a user-friendly error and exit
+          setError('Verification data not available or endpoint error.');
+          setLoading(false);
+          return;
+        }
+
+        if (result && result.success) {
           setVerificationData(result.data);
         } else {
-          setError(result.message || 'Failed to fetch verification data');
+          setError((result && result.message) || 'Failed to fetch verification data');
         }
       } catch (err) {
         setError('Network error. Please try again.');
