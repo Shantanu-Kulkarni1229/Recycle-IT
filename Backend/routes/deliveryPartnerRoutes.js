@@ -7,7 +7,7 @@ const DeliveryPartnerController = require("../controllers/DeliveryPartnerControl
 router.post("/", protect, DeliveryPartnerController.createDeliveryPartner);
 
 // GET /api/delivery-partners - Get all delivery partners for a recycler
-router.get("/", protect, DeliveryPartnerController.getDeliveryPartners);
+router.get("/", DeliveryPartnerController.getDeliveryPartners);
 
 // GET /api/delivery-partners/available - Get available partners for assignment
 router.get("/available", protect, DeliveryPartnerController.getAvailablePartners);

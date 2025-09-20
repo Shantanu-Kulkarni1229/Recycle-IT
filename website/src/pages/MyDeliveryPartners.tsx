@@ -21,20 +21,19 @@ const MyDeliveryPartners: React.FC = () => {
     try {
       setLoading(true);
       setError(null);
-      const response = await deliveryPartnerAPI.getDeliveryPartners();
-      
-      // Safe check for response data
-      const deliveryPartners = response.data?.deliveryPartners || [];
-      setPartners(deliveryPartners);
-      
-      // Calculate stats safely
-      const totalPartners = deliveryPartners.length;
-      const activePartners = deliveryPartners.filter(p => p.isAvailable).length;
-      const totalDeliveries = deliveryPartners.reduce((sum, p) => sum + (p.performanceMetrics?.totalDeliveries || 0), 0);
-      const averageRating = totalPartners > 0 
-        ? deliveryPartners.reduce((sum, p) => sum + (p.performanceMetrics?.averageRating || 0), 0) / totalPartners 
+  const response = await deliveryPartnerAPI.getDeliveryPartners();
+  // Use correct backend response keys
+  const partnersArr: DeliveryPartner[] = response.data?.deliveryPartners || [];
+  setPartners(partnersArr);
+
+      // Use backend-provided totalPartners for stats
+      const totalPartners = partnersArr.length;
+      const activePartners = partnersArr.filter((p: DeliveryPartner) => p.isAvailable).length;
+      const totalDeliveries = partnersArr.reduce((sum: number, p: DeliveryPartner) => sum + ((p.performanceMetrics && typeof p.performanceMetrics.completedDeliveries === 'number') ? p.performanceMetrics.completedDeliveries : 0), 0);
+      const averageRating = partnersArr.length > 0
+        ? partnersArr.reduce((sum: number, p: DeliveryPartner) => sum + ((p.performanceMetrics && typeof p.performanceMetrics.averageRating === 'number') ? p.performanceMetrics.averageRating : 0), 0) / partnersArr.length
         : 0;
-      
+
       setStats({ totalPartners, activePartners, totalDeliveries, averageRating });
     } catch (error: any) {
       console.error('Error fetching partners:', error);
@@ -210,23 +209,13 @@ const MyDeliveryPartners: React.FC = () => {
       {/* Partners Grid */}
       {partners.length === 0 ? (
         <div className="bg-white rounded-lg shadow p-8 text-center">
-          <div className="text-gray-400 mb-4">
-            <svg className="mx-auto h-16 w-16" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-            </svg>
-          </div>
-          <h3 className="text-lg font-medium text-gray-900 mb-2">Build Your Delivery Team</h3>
-          <p className="text-gray-600 mb-4">Add delivery partners to handle pickups in your service areas</p>
-          <div className="space-y-2 text-sm text-gray-500 mb-6">
-            <p>• Delivery partners will be assigned to pickups in their service areas</p>
-            <p>• You can track their performance and manage their availability</p>
-            <p>• Partners can update pickup status and customer communication</p>
-          </div>
+          <h3 className="text-lg font-medium text-gray-900 mb-2">No delivery partners found in the database.</h3>
+          <p className="text-gray-600 mb-4">Add a delivery partner to get started.</p>
           <button
             onClick={() => setShowAddForm(true)}
             className="bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 font-medium"
           >
-            Add Your First Delivery Partner
+            Add Delivery Partner
           </button>
         </div>
       ) : (
@@ -236,7 +225,6 @@ const MyDeliveryPartners: React.FC = () => {
               <div className="flex justify-between items-start mb-4">
                 <div className="flex-1">
                   <h3 className="font-semibold text-gray-900 text-lg">{partner.name}</h3>
-                  <p className="text-sm text-gray-600">{partner.email}</p>
                   <p className="text-sm text-gray-600">{partner.phoneNumber}</p>
                 </div>
                 <div className="flex flex-col items-end space-y-2">
@@ -280,13 +268,13 @@ const MyDeliveryPartners: React.FC = () => {
                 <div className="grid grid-cols-2 gap-4 text-sm">
                   <div className="text-center">
                     <p className="text-2xl font-bold text-green-600">
-                      {partner.performanceMetrics.completedDeliveries}
+                      {(partner.performanceMetrics && typeof partner.performanceMetrics.completedDeliveries === 'number') ? partner.performanceMetrics.completedDeliveries : 0}
                     </p>
                     <p className="text-gray-600">Deliveries</p>
                   </div>
                   <div className="text-center">
                     <p className="text-2xl font-bold text-blue-600">
-                      {partner.performanceMetrics.averageRating.toFixed(1)}
+                      {(partner.performanceMetrics && typeof partner.performanceMetrics.averageRating === 'number') ? partner.performanceMetrics.averageRating.toFixed(1) : '0.0'}
                     </p>
                     <p className="text-gray-600">Rating</p>
                   </div>
@@ -294,7 +282,7 @@ const MyDeliveryPartners: React.FC = () => {
                 
                 <div className="mt-3 text-center">
                   <div className="text-lg font-semibold text-purple-600">
-                    {partner.performanceMetrics.successRate.toFixed(1)}% Success Rate
+                    {(partner.performanceMetrics && typeof partner.performanceMetrics.successRate === 'number') ? partner.performanceMetrics.successRate.toFixed(1) : '0.0'}% Success Rate
                   </div>
                 </div>
               </div>

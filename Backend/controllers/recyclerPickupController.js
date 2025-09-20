@@ -1,3 +1,15 @@
+// Get all e-waste inspection records directly from SchedulePickup where pickupStatus is 'Collected'
+exports.getAllInspections = async (req, res) => {
+  try {
+    const SchedulePickup = require('../models/SchedulePickup');
+    const pickups = await SchedulePickup.find({ pickupStatus: 'Collected' })
+      .populate('userId', 'name email')
+      .populate('assignedRecyclerId', 'ownerName companyName email');
+    res.json({ success: true, count: pickups.length, data: pickups });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Error fetching all inspections', error: error.message });
+  }
+};
 const RecyclerPickup = require("../models/RecyclerPickup");
 const SchedulePickup = require("../models/SchedulePickup");
 const cloudinary = require('../config/cloudinary');
@@ -208,7 +220,7 @@ exports.sendInspectionReport = async (req, res) => {
 exports.getRecyclerPickups = async (req, res) => {
   try {
     const { recyclerId } = req.params;
-    const pickups = await RecyclerPickup.find({ recyclerId })
+    const pickups = await RecyclerPickup.find({ $or: [ { recyclerId }, { recyclerId: null } ] })
       .populate("pickupId")
       .populate("userId", "name email");
 

@@ -67,7 +67,14 @@ const DeliveryPartnerManagement: React.FC = () => {
         isAvailable: filters.isAvailable === '' ? undefined : filters.isAvailable === 'true'
       };
       const response = await deliveryPartnerAPI.getDeliveryPartners(currentPage, 10, apiFilters);
-      setPartners(response.data.deliveryPartners);
+      // Map partners to show name, email, and company
+      const mappedPartners = (response.data.deliveryPartners || []).map((partner: any) => ({
+        ...partner,
+        name: partner.name || 'Unknown Name',
+        email: partner.email || '',
+        company: partner.companyName || (partner.recyclerId?.companyName || ''),
+      }));
+      setPartners(mappedPartners);
       setTotalPages(response.data.pagination.totalPages);
     } catch (error) {
       console.error('Error fetching delivery partners:', error);

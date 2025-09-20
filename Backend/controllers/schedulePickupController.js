@@ -530,6 +530,21 @@ exports.updatePickupStatus = async (req, res) => {
       }
     ).populate('userId', 'firstName lastName email phoneNumber');
 
+    // If status is 'Collected', always create inspection record
+    if (status === 'Collected') {
+      const RecyclerPickup = require('../models/RecyclerPickup');
+      // Only create if not already exists for this pickup
+      const existingInspection = await RecyclerPickup.findOne({ pickupId: pickup._id });
+      if (!existingInspection) {
+        await RecyclerPickup.create({
+          pickupId: pickup._id,
+          userId: pickup.userId,
+          recyclerId: pickup.assignedRecyclerId || null,
+          inspectionStatus: 'Pending'
+        });
+      }
+    }
+
     // Send notification based on status change
     try {
       await sendPickupStatusNotification(pickup, status);

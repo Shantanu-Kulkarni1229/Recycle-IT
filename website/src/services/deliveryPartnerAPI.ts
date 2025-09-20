@@ -126,7 +126,7 @@ class DeliveryPartnerAPI {
   async createDeliveryPartner(partnerData: CreateDeliveryPartnerRequest): Promise<DeliveryPartnerResponse> {
     console.log('Creating delivery partner with data:', partnerData);
     
-    const response = await fetch(`${API_BASE_URL}/delivery-partners`, {
+  const response = await fetch(`${API_BASE_URL}/delivery-partners`, {
       method: 'POST',
       headers: this.getAuthHeaders(),
       body: JSON.stringify(partnerData),
@@ -167,7 +167,7 @@ class DeliveryPartnerAPI {
       });
     }
 
-    const response = await fetch(`${API_BASE_URL}/delivery-partners?${queryParams}`, {
+  const response = await fetch(`${API_BASE_URL}/delivery-partners?${queryParams}`, {
       method: 'GET',
       headers: this.getAuthHeaders(),
     });
@@ -181,7 +181,7 @@ class DeliveryPartnerAPI {
   }
 
   async getDeliveryPartnerById(id: string): Promise<DeliveryPartnerResponse> {
-    const response = await fetch(`${API_BASE_URL}/delivery-partners/${id}`, {
+  const response = await fetch(`${API_BASE_URL}/delivery-partners/${id}`, {
       method: 'GET',
       headers: this.getAuthHeaders(),
     });
@@ -197,7 +197,7 @@ class DeliveryPartnerAPI {
     id: string,
     updateData: UpdateDeliveryPartnerRequest
   ): Promise<DeliveryPartnerResponse> {
-    const response = await fetch(`${API_BASE_URL}/delivery-partners/${id}`, {
+  const response = await fetch(`${API_BASE_URL}/delivery-partners/${id}`, {
       method: 'PUT',
       headers: this.getAuthHeaders(),
       body: JSON.stringify(updateData),

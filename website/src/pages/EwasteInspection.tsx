@@ -29,6 +29,11 @@ interface EwasteItem {
   deviceConditionReport?: any;
   scheduledDate?: string;
   pickupAddress?: string;
+  userId?: {
+    name?: string;
+    email?: string;
+  };
+  pickupStatus?: string;
 }
 
 type ViewMode = 'list' | 'inspect' | 'verification';
@@ -47,26 +52,14 @@ const EwasteInspection: React.FC = () => {
       try {
         setIsLoading(true);
         setError('');
-        
-        // Get recycler ID from local storage
-        const recyclerData = localStorage.getItem('recyclerData');
-        if (!recyclerData) {
-          setError('Recycler data not found');
-          return;
-        }
-        
-        const { _id: recyclerId } = JSON.parse(recyclerData);
         const token = localStorage.getItem('recyclerToken');
-        
-        const response = await fetch(`http://localhost:5000/api/recycler-pickups/recycler/${recyclerId}`, {
+        const response = await fetch('http://localhost:5000/api/recycler-pickups/all', {
           headers: {
             'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json'
           }
         });
-
         const result = await response.json();
-        
         if (result.success) {
           setEwasteItems(result.data || []);
         } else {
@@ -79,8 +72,13 @@ const EwasteInspection: React.FC = () => {
         setIsLoading(false);
       }
     };
-
     loadEwasteItems();
+
+    // Listen for pickup collection event and refresh
+    window.addEventListener('pickup-collected', loadEwasteItems);
+    return () => {
+      window.removeEventListener('pickup-collected', loadEwasteItems);
+    };
   }, []);
 
   const getStatusIcon = (status: string = '') => {
@@ -105,21 +103,29 @@ const EwasteInspection: React.FC = () => {
     }
   };
 
-  const filteredItems = ewasteItems.filter(item => {
-    const deviceType = item.deviceType || '';
-    const brand = item.brand || '';
-    const model = item.model || '';
-    const inspectionStatus = item.inspectionStatus || 'pending';
-    
-    const matchesSearch = deviceType.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         brand.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         model.toLowerCase().includes(searchTerm.toLowerCase());
-    
-    const matchesStatus = statusFilter === 'all' || 
-                         inspectionStatus.toLowerCase() === statusFilter.toLowerCase();
-    
-    return matchesSearch && matchesStatus;
-  });
+  // Map inspection records to show device and owner details
+  const filteredItems = ewasteItems
+    .map(item => {
+      // For SchedulePickup, owner info is in item.userId
+      return {
+        ...item,
+        deviceType: item.deviceType || 'Unknown Device',
+        brand: item.brand || '',
+        model: item.model || '',
+        ownerName: item.userId && typeof item.userId === 'object' ? item.userId.name || 'Unknown Owner' : 'Unknown Owner',
+        ownerEmail: item.userId && typeof item.userId === 'object' ? item.userId.email || '' : '',
+        inspectionStatus: item.pickupStatus || 'pending',
+      };
+    })
+    .filter(item => {
+      const matchesSearch = item.deviceType.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        item.brand.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        item.model.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        item.ownerName.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesStatus = statusFilter === 'all' || 
+        item.inspectionStatus.toLowerCase() === statusFilter.toLowerCase();
+      return matchesSearch && matchesStatus;
+    });
 
   const handleInspectDevice = (item: EwasteItem) => {
     setSelectedItem(item);
@@ -371,25 +377,22 @@ const EwasteInspection: React.FC = () => {
                     )}
                   </div>
                   
-                  <h3 className="text-lg font-semibold text-gray-900 mb-2">{item.deviceType || 'Unknown Device'}</h3>
-                  
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">{item.deviceType}</h3>
+                  <p className="text-sm text-gray-600 mb-2">Owner: {item.ownerName} {item.ownerEmail && (<span className="text-xs text-gray-400">({item.ownerEmail})</span>)}</p>
                   {(item.brand || item.model) && (
                     <p className="text-sm text-gray-600 mb-2">
                       {item.brand} {item.model}
                     </p>
                   )}
-                  
                   {item.pickupAddress && (
                     <p className="text-sm text-gray-600 mb-2">📍 {item.pickupAddress}</p>
                   )}
-                  
                   {item.scheduledDate && (
                     <div className="flex items-center text-sm text-gray-600 mb-4">
                       <Calendar className="w-4 h-4 mr-1" />
                       {new Date(item.scheduledDate).toLocaleDateString()}
                     </div>
                   )}
-                  
                   {item.estimatedValue > 0 && (
                     <p className="text-lg font-semibold text-green-600 mb-4">
                       ₹{item.estimatedValue}
