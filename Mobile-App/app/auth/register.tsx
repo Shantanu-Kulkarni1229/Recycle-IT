@@ -13,10 +13,12 @@ import {
 } from "react-native";
 import { useRouter } from "expo-router";
 import api from "../../api/api";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useUser } from "@/context/UserContext";
+import { storeAuthData } from "../../utils/auth";
 
 const Register: React.FC = () => {
   const router = useRouter();
+  const { setUserId } = useUser();
   const [form, setForm] = useState({
     name: "",
     email: "",
@@ -37,16 +39,18 @@ const Register: React.FC = () => {
     try {
       const res = await api.post("users/register", form);
 
-      // if your API returns token on register, store it immediately
-      if (res.data.token) {
-        await AsyncStorage.setItem("userToken", res.data.token);
-        router.replace("/"); // directly logged in
-      } else {
-        // if API requires OTP first, redirect to verify screen
+      // Check if API requires OTP verification first
+      if (res.data.requiresOtp || !res.data.token) {
+        // Store email for OTP verification
+        Alert.alert("Success", "Please check your email for OTP verification");
         router.push("/auth/verify-otp");
+      } else if (res.data.token && res.data.user) {
+        // If token is provided, store it and auto-login
+        await storeAuthData(res.data.token, res.data.user._id);
+        setUserId(res.data.user._id);
+        Alert.alert("Success", "Registration successful! Welcome to Recycle IT");
+        router.replace("/(tabs)/home");
       }
-
-      Alert.alert("Success", res.data.message);
     } catch (err: any) {
       Alert.alert("Error", err.response?.data?.message || "Registration failed");
     } finally {

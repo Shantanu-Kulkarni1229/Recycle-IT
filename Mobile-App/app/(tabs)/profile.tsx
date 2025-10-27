@@ -68,7 +68,14 @@ export default function Profile() {
     setLoading(true);
     try {
       const token = await AsyncStorage.getItem("userToken");
-      if (!token) throw new Error("No token found");
+      if (!token) {
+        Alert.alert(
+          "Session Expired", 
+          "Please login again to continue",
+          [{ text: "Login", onPress: () => router.replace("/auth/login") }]
+        );
+        return;
+      }
       const res = await api.get("users/profile", {
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -79,12 +86,23 @@ export default function Profile() {
       });
     } catch (err: any) {
       console.log("Profile fetch error:", err.response?.data || err.message);
-      Alert.alert("Error", err.response?.data?.message || "Failed to load profile");
+      
+      // If token failed, prompt user to login again
+      if (err.response?.status === 401 || err.response?.data?.message?.includes("token")) {
+        Alert.alert(
+          "Session Expired",
+          "Your session has expired. Please login again",
+          [
+            { text: "Cancel", style: "cancel" },
+            { text: "Login", onPress: () => router.replace("/auth/login") }
+          ]
+        );
+      } else {
+        Alert.alert("Error", err.response?.data?.message || "Failed to load profile");
+      }
     }
     setLoading(false);
-  };
-
-  // Fetch rewards
+  };  // Fetch rewards
   const fetchRewards = async () => {
     try {
       // Mock data - replace with actual API call

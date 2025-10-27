@@ -2,7 +2,19 @@ import React, { useEffect, useRef, useState } from "react";
 import { View, Text, ActivityIndicator, Alert, TouchableOpacity, Dimensions, Linking, Modal, FlatList, TextInput, ScrollView } from "react-native";
 import { Star, Leaf, MapPin, Info, Phone, Navigation, List, X, MessageSquare, Send } from "lucide-react-native";
 import api from "../../api/api";
-import MapView, { Marker, PROVIDER_GOOGLE, Region } from "react-native-maps";
+import { Platform } from "react-native";
+// Import react-native-maps only on native platforms (not on web)
+let MapView: any = null;
+let Marker: any = null;
+let PROVIDER_GOOGLE: any = null;
+if (Platform.OS !== 'web') {
+  // require at runtime to avoid Metro trying to bundle native-only internals for web
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  const RNMaps = require('react-native-maps');
+  MapView = RNMaps.default || RNMaps;
+  Marker = RNMaps.Marker;
+  PROVIDER_GOOGLE = RNMaps.PROVIDER_GOOGLE;
+}
 import * as Location from "expo-location";
 import { BottomSheetModal, BottomSheetModalProvider } from "@gorhom/bottom-sheet";
 import { useUser } from "@/context/UserContext";
@@ -196,8 +208,16 @@ export default function RecyclersNearby() {
     Linking.openURL(url);
   };
 
+  // Local Region type (avoid importing native-only types on web)
+  type RegionType = {
+    latitude: number;
+    longitude: number;
+    latitudeDelta: number;
+    longitudeDelta: number;
+  };
+
   // Map region
-  const region: Region | undefined = location
+  const region: RegionType | undefined = location
     ? {
         latitude: location.coords.latitude,
         longitude: location.coords.longitude,
@@ -271,49 +291,69 @@ export default function RecyclersNearby() {
             <ActivityIndicator size="large" color="#059669" />
             <Text className="text-emerald-700 mt-2">Locating you...</Text>
           </View>
+        ) : Platform.OS === 'web' ? (
+          // Web fallback: Show list since react-native-maps doesn't work on web
+          <View style={{ flex: 1 }}>
+            <View style={{ padding: 16 }}>
+              <Text style={{ fontSize: 16, fontWeight: '600', color: '#064e3b', marginBottom: 8 }}>Map is unavailable on web</Text>
+              <Text style={{ color: '#475569', marginBottom: 12 }}>
+                For an interactive map please use the mobile app. Meanwhile, here's a list of nearby recyclers and quick directions links.
+              </Text>
+            </View>
+            <ScrollView contentContainerStyle={{ padding: 16 }}>
+              {recyclers.length === 0 ? (
+                <View style={{ alignItems: 'center', padding: 24 }}>
+                  <Text style={{ color: '#6b7280' }}>No recyclers found nearby</Text>
+                </View>
+              ) : (
+                recyclers.map(rec => (
+                  <View key={rec.id} style={{ backgroundColor: '#fff', padding: 12, borderRadius: 12, marginBottom: 12, borderWidth: 1, borderColor: '#d1fae5' }}>
+                    <Text style={{ fontSize: 16, fontWeight: '700', color: '#065f46' }}>{rec.companyName}</Text>
+                    <Text style={{ color: '#475569', marginTop: 6 }}>{rec.address}</Text>
+                    {rec.distance !== undefined && <Text style={{ color: '#059669', marginTop: 6 }}>{rec.distance} km away</Text>}
+                    <View style={{ flexDirection: 'row', marginTop: 8 }}>
+                      {rec.phoneNumber ? (
+                        <TouchableOpacity onPress={() => callRecycler(rec.phoneNumber!)} style={{ backgroundColor: '#ecfdf5', padding: 8, borderRadius: 8, marginRight: 8 }}>
+                          <Text style={{ color: '#065f46' }}>Call</Text>
+                        </TouchableOpacity>
+                      ) : null}
+                      {rec.latitude && rec.longitude ? (
+                        <TouchableOpacity onPress={() => openDirections(rec.latitude!, rec.longitude!)} style={{ backgroundColor: '#dbeafe', padding: 8, borderRadius: 8 }}>
+                          <Text style={{ color: '#1e3a8a' }}>Directions</Text>
+                        </TouchableOpacity>
+                      ) : null}
+                    </View>
+                  </View>
+                ))
+              )}
+            </ScrollView>
+          </View>
         ) : (
+          // Native platform: Show MapView with markers
           <MapView
-            provider={PROVIDER_GOOGLE}
             style={{ flex: 1 }}
-            region={region}
-            showsUserLocation
-            showsMyLocationButton
-            customMapStyle={[
-              { elementType: "geometry", stylers: [{ color: "#e0f2f1" }] },
-              { elementType: "labels.text.fill", stylers: [{ color: "#388e3c" }] },
-              { elementType: "labels.text.stroke", stylers: [{ color: "#ffffff" }] },
-            ]}
+            initialRegion={region}
+            provider={PROVIDER_GOOGLE}
+            showsUserLocation={true}
+            showsMyLocationButton={true}
           >
-            {/* User marker */}
-            {location && (
-              <Marker
-                coordinate={{
-                  latitude: location.coords.latitude,
-                  longitude: location.coords.longitude,
-                }}
-                title="You are here"
-                pinColor="#059669"
-              >
-                <View className="bg-emerald-600 p-2 rounded-full border-4 border-white shadow-lg">
-                  <Leaf size={22} color="#fff" />
-                </View>
-              </Marker>
-            )}
-            
-            {/* Recycler markers */}
-            {recyclers.filter(r => r.latitude && r.longitude).map((rec) => (
-              <Marker
-                key={rec.id}
-                coordinate={{ latitude: rec.latitude!, longitude: rec.longitude! }}
-                title={rec.companyName}
-                description={rec.address}
-                onPress={() => openRecycler(rec)}
-              >
-                <View className="bg-white rounded-full border-2 border-emerald-400 p-2 shadow-lg">
-                  <MapPin size={22} color="#059669" />
-                </View>
-              </Marker>
-            ))}
+            {recyclers.map((recycler) => {
+              if (recycler.latitude && recycler.longitude) {
+                return (
+                  <Marker
+                    key={recycler.id}
+                    coordinate={{
+                      latitude: recycler.latitude,
+                      longitude: recycler.longitude,
+                    }}
+                    title={recycler.companyName}
+                    description={recycler.address}
+                    onPress={() => openRecycler(recycler)}
+                  />
+                );
+              }
+              return null;
+            })}
           </MapView>
         )}
 
