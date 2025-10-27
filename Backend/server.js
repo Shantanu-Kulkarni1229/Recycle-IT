@@ -51,7 +51,7 @@ app.use(express.urlencoded({ extended: true }));
 // This must come BEFORE the payment routes
 app.use('/api/payments/webhook', express.raw({ type: 'application/json' }));
 
-app.use('/api/blockchain', blockchainRoutes);
+app.use('/api/blockchain-records', require('./routes/blockchainRoutes'));
 
 // Routes with specific rate limiting
 app.use('/api/payments', paymentLimiter, paymentRoutes);

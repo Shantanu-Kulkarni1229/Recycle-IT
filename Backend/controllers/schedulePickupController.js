@@ -1,3 +1,74 @@
+// Simple inspection endpoint: always creates a dummy blockchain record
+const BlockchainRecord = require('../models/BlockchainRecord');
+exports.inspectDevice = async (req, res) => {
+  try {
+    const { id } = req.params;
+    // Create a dummy blockchain record
+    const lastBlock = await BlockchainRecord.findOne().sort({ timestamp: -1 });
+    const newBlock = new BlockchainRecord({
+      pickupId: id,
+      cloudinaryUrl: `dummy-inspection-for-${id}`,
+      previousHash: lastBlock ? lastBlock.hash : 'GENESIS',
+      hash: '',
+    });
+    newBlock.hash = newBlock.generateHash();
+    await newBlock.save();
+    res.json({ success: true, message: 'Dummy inspection blockchain record created', data: newBlock });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Error creating blockchain record', error: error.message });
+  }
+};
+// Device Inspection for SchedulePickup
+exports.inspectDevice = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const {
+      physicalDamage,
+      workingComponents,
+      reusableSemiconductors,
+      scrapValue,
+      inspectionNotes,
+      environmentalImpact
+    } = req.body;
+
+    // Handle uploaded files from Cloudinary
+    const inspectionImages = [];
+    const damageImages = [];
+    if (req.files) {
+      if (req.files.inspectionImages) {
+        req.files.inspectionImages.forEach(file => inspectionImages.push(file.path));
+      }
+      if (req.files.damageImages) {
+        req.files.damageImages.forEach(file => damageImages.push(file.path));
+      }
+    }
+
+    // Build update data
+    const updateData = {
+      'inspectionReport.physicalDamage': physicalDamage,
+      'inspectionReport.workingComponents': workingComponents ? workingComponents.split(',') : [],
+      'inspectionReport.reusableSemiconductors': reusableSemiconductors,
+      'inspectionReport.scrapValue': scrapValue,
+      'inspectionReport.inspectionNotes': inspectionNotes,
+      'inspectionReport.environmentalImpact': environmentalImpact ? JSON.parse(environmentalImpact) : {},
+      inspectionStatus: 'Under Inspection',
+    };
+    if (inspectionImages.length > 0) {
+      updateData['inspectionReport.inspectionImages'] = inspectionImages;
+    }
+    if (damageImages.length > 0) {
+      updateData['inspectionReport.damageImages'] = damageImages;
+    }
+
+    const pickup = await SchedulePickup.findByIdAndUpdate(id, updateData, { new: true });
+    if (!pickup) return res.status(404).json({ success: false, message: 'Pickup not found' });
+
+    res.json({ success: true, message: 'Inspection report updated', data: pickup });
+  } catch (error) {
+    console.error('Error inspecting device:', error);
+    res.status(500).json({ success: false, message: 'Error inspecting device', error: error.message });
+  }
+};
 const mongoose = require("mongoose");
 const SchedulePickup = require("../models/SchedulePickup");
 const { cloudinary } = require("../config/cloudinary");
@@ -533,15 +604,17 @@ exports.updatePickupStatus = async (req, res) => {
     // If status is 'Collected', always create inspection record
     if (status === 'Collected') {
       const RecyclerPickup = require('../models/RecyclerPickup');
-      // Only create if not already exists for this pickup
+      // Only create if not already exists for this pickup and recyclerId is present
       const existingInspection = await RecyclerPickup.findOne({ pickupId: pickup._id });
-      if (!existingInspection) {
+      if (!existingInspection && pickup.assignedRecyclerId) {
         await RecyclerPickup.create({
           pickupId: pickup._id,
           userId: pickup.userId,
-          recyclerId: pickup.assignedRecyclerId || null,
+          recyclerId: pickup.assignedRecyclerId,
           inspectionStatus: 'Pending'
         });
+      } else if (!pickup.assignedRecyclerId) {
+        console.warn(`Skipping RecyclerPickup creation: assignedRecyclerId missing for pickup ${pickup._id}`);
       }
     }
 
