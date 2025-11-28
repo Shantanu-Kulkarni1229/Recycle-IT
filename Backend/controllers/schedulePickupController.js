@@ -1181,18 +1181,19 @@ exports.assignDeliveryPartner = async (req, res) => {
       });
     }
 
-    // Check if delivery partner serves the pickup area
-    const isAreaServed = deliveryPartner.serviceAreas.some(area => 
-      area.city.toLowerCase() === pickup.city.toLowerCase() && 
-      area.pincode === pickup.pincode
-    );
+    // BYPASSED: Check if delivery partner serves the pickup area
+    // const isAreaServed = deliveryPartner.serviceAreas.some(area => 
+    //   area.city.toLowerCase() === pickup.city.toLowerCase() && 
+    //   area.pincode === pickup.pincode
+    // );
 
-    if (!isAreaServed) {
-      return res.status(400).json({
-        success: false,
-        message: "Delivery partner does not serve this area"
-      });
-    }
+    // BYPASSED: Area validation removed to allow any partner assignment
+    // if (!isAreaServed) {
+    //   return res.status(400).json({
+    //     success: false,
+    //     message: "Delivery partner does not serve this area"
+    //   });
+    // }
 
     // Update pickup with delivery partner assignment
     const updatedPickup = await SchedulePickup.findByIdAndUpdate(

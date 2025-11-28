@@ -62,13 +62,37 @@ exports.createDeliveryPartner = async (req, res) => {
     }
 
     // Create new delivery partner
+    // If no serviceAreas provided, set default to multiple pincodes in Chhatrapati Sambhajinagar area
+    const defaultServiceAreas = [
+      {
+        city: "Chhatrapati Sambhajinagar",
+        pincode: "431001"
+      },
+      {
+        city: "Chhatrapati Sambhajinagar", 
+        pincode: "431002"
+      },
+      {
+        city: "Chhatrapati Sambhajinagar",
+        pincode: "431003"
+      },
+      {
+        city: "Chhatrapati Sambhajinagar",
+        pincode: "431004"
+      },
+      {
+        city: "Chhatrapati Sambhajinagar",
+        pincode: "431005"
+      }
+    ];
+
     const deliveryPartnerData = {
       name: name.trim(),
       email: email.toLowerCase().trim(),
       phoneNumber: phoneNumber.replace(/\D/g, ''), // Remove non-digits
       vehicleType,
       vehicleNumber: vehicleNumber.toUpperCase().trim(),
-      serviceAreas: serviceAreas || [],
+      serviceAreas: (Array.isArray(serviceAreas) && serviceAreas.length > 0) ? serviceAreas : defaultServiceAreas,
       workingHours: workingHours || { start: "09:00", end: "18:00" },
       workingDays: workingDays || ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"],
       recyclerId,
@@ -366,24 +390,25 @@ exports.deleteDeliveryPartner = async (req, res) => {
   }
 };
 
-// 6. Get available partners for specific area
+// 6. Get available partners - BYPASS LOCATION FILTERING (show all partners)
 exports.getAvailablePartners = async (req, res) => {
   try {
     const { city, pincode, recyclerId } = req.query;
     
-    if (!city || !pincode) {
-      return res.status(400).json({
-        success: false,
-        message: "City and pincode are required"
-      });
-    }
+    // BYPASSED: No longer requiring city/pincode - show all delivery partners
+    // if (!city || !pincode) {
+    //   return res.status(400).json({
+    //     success: false,
+    //     message: "City and pincode are required"
+    //   });
+    // }
 
-    // Build query for available partners
+    // Build query for available partners - REMOVED LOCATION FILTERING
     const query = {
       isAvailable: true,
-      status: 'Active',
-      'serviceAreas.city': new RegExp(city, 'i'),
-      'serviceAreas.pincode': pincode
+      status: 'Active'
+      // REMOVED: 'serviceAreas.city': new RegExp(city, 'i'),
+      // REMOVED: 'serviceAreas.pincode': pincode
     };
 
     // If recyclerId is provided, filter by specific recycler
@@ -424,11 +449,11 @@ exports.getAvailablePartners = async (req, res) => {
 
     res.json({
       success: true,
-      message: "Available delivery partners retrieved successfully",
+      message: "Available delivery partners retrieved successfully (location filtering bypassed)",
       data: {
         deliveryPartners: partnersWithAvailability,
         count: partnersWithAvailability.length,
-        area: { city, pincode }
+        requestedArea: { city: city || "Any", pincode: pincode || "Any" }
       }
     });
 
